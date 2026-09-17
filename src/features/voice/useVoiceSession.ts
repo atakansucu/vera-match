@@ -30,6 +30,8 @@ export type VoiceSessionStatus = 'idle' | 'connecting' | 'active' | 'ended';
 interface UseVoiceSessionOptions {
   context: 'onboarding' | 'matchmaker';
   onComplete?: (claims: Claim[]) => void;
+  /** Called when a complete sentence is available during streaming, for early TTS. */
+  onSentence?: (sentence: string) => void;
 }
 
 interface ChatMessage {
@@ -63,6 +65,7 @@ function msgId(): string {
 export function useVoiceSession({
   context,
   onComplete,
+  onSentence,
 }: UseVoiceSessionOptions): UseVoiceSessionReturn {
   const [status, setStatus] = useState<VoiceSessionStatus>('idle');
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
@@ -126,6 +129,7 @@ export function useVoiceSession({
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let fullText = '';
+        let sentenceBuf = '';
         let buffer = '';
 
         while (true) {
@@ -144,17 +148,32 @@ export function useVoiceSession({
               const parsed = JSON.parse(data) as { delta?: string };
               if (parsed.delta) {
                 fullText += parsed.delta;
+                sentenceBuf += parsed.delta;
                 const captured = fullText;
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === id ? { ...m, text: captured } : m,
                   ),
                 );
+
+                // Detect sentence boundary and fire early TTS
+                const sentenceEnd = sentenceBuf.match(/[.!?]\s/);
+                if (sentenceEnd && onSentence) {
+                  const idx = sentenceEnd.index! + 1;
+                  const sentence = sentenceBuf.slice(0, idx).trim();
+                  sentenceBuf = sentenceBuf.slice(idx);
+                  if (sentence.length > 5) onSentence(sentence);
+                }
               }
             } catch {
               // skip malformed chunks
             }
           }
+        }
+
+        // Send any remaining text as the final sentence
+        if (sentenceBuf.trim() && onSentence) {
+          onSentence(sentenceBuf.trim());
         }
 
         // Finalize
@@ -180,7 +199,7 @@ export function useVoiceSession({
         abortRef.current = null;
       }
     },
-    [serverUrl, context],
+    [serverUrl, context, onSentence],
   );
 
   // -----------------------------------------------------------------------

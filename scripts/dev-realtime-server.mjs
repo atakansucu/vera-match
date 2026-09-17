@@ -186,26 +186,43 @@ async function handleChat(req, res) {
 
 async function handleTranscribe(req, res) {
   const rawBody = await readBody(req);
+  const body = JSON.parse(rawBody.toString() || '{}');
+  const { audio, format } = body;
 
-  // Parse multipart boundary from content-type
-  const contentType = req.headers['content-type'] ?? '';
-  const boundaryMatch = contentType.match(/boundary=(.+)/);
-  if (!boundaryMatch) {
+  if (!audio) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Missing multipart boundary' }));
+    res.end(JSON.stringify({ error: 'Missing audio field (base64)' }));
     return;
   }
 
-  console.log(`[transcribe] Received ${rawBody.length} bytes`);
+  const audioBuffer = globalThis.Buffer.from(audio, 'base64');
+  const ext = format || 'm4a';
+  const mimeType = ext === 'm4a' ? 'audio/mp4' : `audio/${ext}`;
+  console.log(`[transcribe] Received ${audioBuffer.length} bytes of ${ext} audio`);
 
-  // Forward the raw multipart body to OpenAI Whisper
+  // Build multipart form data for OpenAI Whisper
+  const boundary = `----ExpoAudio${Date.now()}`;
+  const parts = [];
+
+  // file part
+  parts.push(`--${boundary}\r\n`);
+  parts.push(`Content-Disposition: form-data; name="file"; filename="recording.${ext}"\r\n`);
+  parts.push(`Content-Type: ${mimeType}\r\n\r\n`);
+  const headerBuf = globalThis.Buffer.from(parts.join(''));
+
+  // model part (language auto-detected by Whisper)
+  const modelPart = `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}--\r\n`;
+  const modelBuf = globalThis.Buffer.from(modelPart);
+
+  const multipartBody = globalThis.Buffer.concat([headerBuf, audioBuffer, modelBuf]);
+
   const openaiRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': contentType,
+      'Content-Type': `multipart/form-data; boundary=${boundary}`,
     },
-    body: rawBody,
+    body: multipartBody,
   });
 
   if (!openaiRes.ok) {
@@ -217,7 +234,7 @@ async function handleTranscribe(req, res) {
   }
 
   const result = await openaiRes.json();
-  console.log(`[transcribe] "${result.text?.slice(0, 80)}..."`);
+  console.log(`[transcribe] "${result.text?.slice(0, 80)}"`);
   res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
   res.end(JSON.stringify({ text: result.text }));
 }
