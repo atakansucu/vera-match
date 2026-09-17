@@ -14,4 +14,10 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   frictionVisible: true,
   demoMode: env.backend === 'dev',
   betaAllowedEmailDomains: env.betaAllowedEmailDomains,
+  // Engagement v2
+  matchDropEnabled: true,
+  microScenariosEnabled: true,
+  predictionGameEnabled: true,
+  weeklyRecapEnabled: true,
+  conversationStarterEnabled: true,
 };

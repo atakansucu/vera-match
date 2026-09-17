@@ -62,7 +62,7 @@ export default function IntroductionScreen() {
   const frictionVisible = flags.data?.frictionVisible ?? true;
 
   const revealProfile = () => {
-    void backend.track(userId, 'introduction_profile_opened', { introductionId: intro.id });
+    void backend.track(userId, 'match_profile_viewed', { introductionId: intro.id });
     setStage('profile');
   };
 
@@ -89,7 +89,7 @@ export default function IntroductionScreen() {
         <VStack gap="xl">
           <Text variant="heading">Someone may be worth discovering.</Text>
 
-          <Section title="Why this person?">
+          <Section title="Why they stood out">
             <PointList
               heading="You may align on"
               tone="positive"
@@ -98,21 +98,24 @@ export default function IntroductionScreen() {
             />
             {frictionVisible && intro.explanation.friction.length > 0 ? (
               <PointList
-                heading="Something to notice"
+                heading="One difference"
                 tone="caution"
                 points={intro.explanation.friction}
               />
             ) : null}
             {intro.explanation.unknowns.length > 0 ? (
               <PointList
-                heading="Still unknown"
+                heading="One thing I'm still unsure about"
                 tone="neutral"
                 points={intro.explanation.unknowns}
               />
             ) : null}
           </Section>
 
-          <Button label="Continue to their profile" onPress={revealProfile} />
+          <Button label="See them" onPress={revealProfile} />
+          <Text variant="footnote" color="tertiary" align="center">
+            You&apos;ll see their photos before you decide.
+          </Text>
         </VStack>
       ) : null}
 
@@ -188,10 +191,11 @@ export default function IntroductionScreen() {
             <Card elevated>
               <VStack gap="md" align="center">
                 <Text variant="display" align="center">
-                  It&apos;s mutual.
+                  You were both curious.
                 </Text>
                 <Text variant="body" color="secondary" align="center">
-                  You both chose to meet. The rest is up to the two of you.
+                  I thought the two of you might have something worth exploring. Now it&apos;s
+                  yours.
                 </Text>
                 <Spacer size="xs" />
                 <Button

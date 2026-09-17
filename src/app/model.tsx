@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Callout, EmptyState, FullScreenLoader, ScreenHeader } from '@/components';
@@ -8,53 +8,70 @@ import {
   useConfirmClaim,
   useEditClaim,
   useForgetClaim,
-  useModelInsights,
   useRejectClaim,
 } from '@/features/claims/hooks';
 import { DIMENSION_SPECS } from '@/features/matching/dimensions';
+import { useNotebook } from '@/features/matchmaker/hooks';
 import type { ModelInsightView } from '@/types/views';
 
 export default function ModelScreen() {
-  const insights = useModelInsights();
-  const data = useMemo(() => insights.data ?? [], [insights.data]);
+  const notebook = useNotebook();
 
-  const groups = useMemo(() => {
-    const map = new Map<string, ModelInsightView[]>();
-    for (const item of data) {
-      const list = map.get(item.group) ?? [];
-      list.push(item);
-      map.set(item.group, list);
-    }
-    return Array.from(map.entries());
-  }, [data]);
+  if (notebook.isPending) return <FullScreenLoader />;
 
-  if (insights.isPending) return <FullScreenLoader />;
+  const data = notebook.data;
+  const hasAny =
+    data &&
+    (data.prettySure.length > 0 || data.reconsidering.length > 0 || data.figuringOut.length > 0);
 
   return (
     <Screen scroll>
       <ScreenHeader
-        title="What my matchmaker knows"
+        title="Your matchmaker's notebook"
         subtitle="Everything I believe about you, in your words. You can change any of it."
         showBack
       />
 
-      {data.length === 0 ? (
+      {!hasAny ? (
         <EmptyState
           title="I'm still getting to know you."
           body="As you reflect and answer the occasional question, what I learn will appear here — always for you to confirm or correct."
         />
       ) : (
         <VStack gap="xxl">
-          {groups.map(([group, items]) => (
-            <VStack key={group} gap="md">
+          {data.prettySure.length > 0 ? (
+            <VStack gap="md">
               <Text variant="label" color="secondary">
-                {group.toUpperCase()}
+                PRETTY SURE
               </Text>
-              {items.map((item) => (
+              {data.prettySure.map((item) => (
                 <InsightCard key={item.claimId} insight={item} />
               ))}
             </VStack>
-          ))}
+          ) : null}
+
+          {data.reconsidering.length > 0 ? (
+            <VStack gap="md">
+              <Text variant="label" color="caution">
+                I&apos;M RECONSIDERING
+              </Text>
+              {data.reconsidering.map((item) => (
+                <InsightCard key={item.claimId} insight={item} />
+              ))}
+            </VStack>
+          ) : null}
+
+          {data.figuringOut.length > 0 ? (
+            <VStack gap="md">
+              <Text variant="label" color="tertiary">
+                STILL FIGURING OUT
+              </Text>
+              {data.figuringOut.map((item) => (
+                <InsightCard key={item.claimId} insight={item} />
+              ))}
+            </VStack>
+          ) : null}
+
           <Callout>
             I only let confirmed insights shape who I suggest. Hypotheses wait for your yes.
           </Callout>

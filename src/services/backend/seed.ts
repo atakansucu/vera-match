@@ -8,6 +8,8 @@ import type {
   IntroductionDecision,
   Match,
   Message,
+  MicroScenario,
+  PredictionEvent,
   Profile,
   ProfilePhoto,
   ReflectionEvent,
@@ -34,6 +36,9 @@ export interface DevState {
   dateOutcomes: import('@/types/domain').DateOutcome[];
   events: import('@/types/domain').ProductEvent[];
   usage: import('@/types/domain').AiUsageRecord[];
+  microScenarios: MicroScenario[];
+  predictionEvents: PredictionEvent[];
+  acknowledgedRevisionIds: Set<string>;
   usersByEmail: Map<string, Session>;
   autoInterested: Set<string>;
   pendingOtp: Map<string, string>;
@@ -598,6 +603,9 @@ export function createSeedState(): DevState {
     dateOutcomes: [],
     events: [],
     usage: [],
+    microScenarios: [],
+    predictionEvents: [],
+    acknowledgedRevisionIds: new Set(),
     usersByEmail,
     autoInterested,
     pendingOtp: new Map(),

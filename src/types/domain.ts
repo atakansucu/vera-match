@@ -364,6 +364,25 @@ export const PRODUCT_EVENTS = [
   'reflection_submitted',
   'model_revision_confirmed',
   'model_revision_rejected',
+  // Engagement v2
+  'match_drop_opened',
+  'match_reason_viewed',
+  'match_profile_viewed',
+  'matchmaker_insight_viewed',
+  'matchmaker_insight_confirmed',
+  'matchmaker_insight_partially_confirmed',
+  'matchmaker_insight_rejected',
+  'micro_scenario_viewed',
+  'micro_scenario_answered',
+  'micro_scenario_skipped',
+  'prediction_game_started',
+  'prediction_game_answered',
+  'prediction_correct',
+  'prediction_incorrect',
+  'weekly_recap_viewed',
+  'conversation_starter_viewed',
+  'conversation_starter_used',
+  'conversation_starter_skipped',
 ] as const;
 export type ProductEventType = (typeof PRODUCT_EVENTS)[number];
 
@@ -394,5 +413,40 @@ export interface AiUsageRecord {
   outputTokens: number | null;
   success: boolean;
   errorCode: string | null;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Engagement v2: micro-scenarios, prediction game
+// ---------------------------------------------------------------------------
+
+export const SCENARIO_STATUSES = ['pending', 'answered', 'skipped', 'expired'] as const;
+export type ScenarioStatus = (typeof SCENARIO_STATUSES)[number];
+
+export interface MicroScenario {
+  id: string;
+  userId: UserId;
+  targetDimension: Dimension;
+  scenarioType: string;
+  prompt: string;
+  options: { label: string; value: string }[];
+  reason: string;
+  candidateId: UserId | null;
+  status: ScenarioStatus;
+  createdAt: string;
+  answeredAt: string | null;
+}
+
+export interface PredictionEvent {
+  id: string;
+  userId: UserId;
+  predictionType: 'candidate_preference';
+  candidateAPayload: { label: string; traits: string[] };
+  candidateBPayload: { label: string; traits: string[] };
+  predictedChoice: 'a' | 'b';
+  actualChoice: 'a' | 'b' | null;
+  correct: boolean | null;
+  modelVersion: string;
+  reason: string | null;
   createdAt: string;
 }

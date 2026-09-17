@@ -84,6 +84,12 @@ export interface FeatureFlags {
   frictionVisible: boolean;
   demoMode: boolean;
   betaAllowedEmailDomains: string[];
+  // Engagement v2
+  matchDropEnabled: boolean;
+  microScenariosEnabled: boolean;
+  predictionGameEnabled: boolean;
+  weeklyRecapEnabled: boolean;
+  conversationStarterEnabled: boolean;
 }
 
 export interface ReportInput {
@@ -111,4 +117,71 @@ export interface UserDataExport {
   messages: unknown;
   photos: unknown;
   dateOutcomes: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Engagement v2 views
+// ---------------------------------------------------------------------------
+
+/** Matchmaker notebook: insights grouped by confidence posture. */
+export interface NotebookView {
+  prettySure: ModelInsightView[];
+  reconsidering: ModelInsightView[];
+  figuringOut: ModelInsightView[];
+}
+
+/** "I changed my mind about something" card. */
+export interface RevisionCardView {
+  revisionId: string;
+  dimension: Dimension;
+  label: string;
+  previousValueLabel: string;
+  newValueLabel: string;
+  narrative: string;
+}
+
+/** Weekly matchmaker recap. */
+export interface WeeklyRecapView {
+  learned: string | null;
+  stoppedAssuming: string | null;
+  stillCurious: string | null;
+  promisingCandidate: boolean;
+}
+
+/** Micro-scenario question (richer than MicroQuestionView). */
+export interface MicroScenarioView {
+  id: string;
+  targetDimension: Dimension;
+  prompt: string;
+  options: { label: string; value: string }[];
+  reason: string;
+}
+
+/** "Would I get you right?" prediction game. */
+export interface PredictionGameView {
+  id: string;
+  candidateA: { label: string; traits: string[] };
+  candidateB: { label: string; traits: string[] };
+}
+
+/** Prediction game result after user answers. */
+export interface PredictionResultView {
+  correct: boolean;
+  matchmakerPredicted: 'a' | 'b';
+  userChose: 'a' | 'b';
+}
+
+/** Grounded conversation starter after mutual interest. */
+export interface ConversationStarterView {
+  text: string;
+  dimension: Dimension;
+}
+
+/** Current home screen state — what the matchmaker has for the user. */
+export interface HomeStateView {
+  matchDrop: IntroductionView | null;
+  revisionCard: RevisionCardView | null;
+  microScenario: MicroScenarioView | null;
+  weeklyRecap: WeeklyRecapView | null;
+  hasPredictionGame: boolean;
 }

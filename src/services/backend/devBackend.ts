@@ -34,18 +34,38 @@ import type {
   DatingPreferences,
 } from '@/types/domain';
 import type {
+  ConversationStarterView,
   ConversationView,
   FeatureFlags,
+  HomeStateView,
   IntroductionExplanationView,
   IntroductionView,
   MicroQuestionView,
+  MicroScenarioView,
   ModelInsightView,
+  NotebookView,
+  PredictionGameView,
+  PredictionResultView,
   ReportInput,
   RevealProfile,
+  RevisionCardView,
   Session,
   UserDataExport,
   VerificationView,
+  WeeklyRecapView,
 } from '@/types/views';
+
+import { buildConversationStarter } from '@/features/matchmaker/conversationStarter';
+import { buildNotebook } from '@/features/matchmaker/notebook';
+import {
+  buildPredictionPair,
+  createPredictionEvent,
+  predictionToView,
+  resolvePrediction,
+} from '@/features/matchmaker/prediction';
+import { buildWeeklyRecap } from '@/features/matchmaker/recap';
+import { buildRevisionCard } from '@/features/matchmaker/revisionCard';
+import { selectScenario, scenarioToMicroScenario } from '@/features/matchmaker/scenarios';
 
 import { createSeedState, type DevState } from './seed';
 import type { Backend, PreferencesInput, ProfileInput } from './types';
@@ -1132,6 +1152,191 @@ export class DevBackend implements Backend {
       mutual,
       conversationId,
     };
+  }
+
+  // -----------------------------------------------------------------------
+  // Engagement v2 methods
+  // -----------------------------------------------------------------------
+
+  async getHomeState(userId: string): Promise<HomeStateView> {
+    const intros = await this.listIntroductions(userId);
+    const matchDrop = intros.find((i) => i.status === 'active' && i.myDecision === null) ?? null;
+    const revisionCard = await this.getLatestRevisionCard(userId);
+    const microScenario = await this.getMicroScenario(userId);
+    const weeklyRecap = await this.getWeeklyRecap(userId);
+    const hasPredictionGame = (await this.getPredictionGame(userId)) !== null;
+    return { matchDrop, revisionCard, microScenario, weeklyRecap, hasPredictionGame };
+  }
+
+  async getNotebook(userId: string): Promise<NotebookView> {
+    const claims = this.state.claims.filter((c) => c.userId === userId);
+    const revisions = this.state.revisions.filter((r) => r.userId === userId);
+    return buildNotebook(claims, revisions);
+  }
+
+  async getLatestRevisionCard(userId: string): Promise<RevisionCardView | null> {
+    const revisions = this.state.revisions.filter((r) => r.userId === userId);
+    const card = buildRevisionCard(revisions);
+    if (!card || this.state.acknowledgedRevisionIds.has(card.revisionId)) return null;
+    return card;
+  }
+
+  async acknowledgeRevisionCard(
+    userId: string,
+    revisionId: string,
+    response: 'exactly' | 'sort_of' | 'not_really',
+  ): Promise<void> {
+    this.state.acknowledgedRevisionIds.add(revisionId);
+    const revision = this.state.revisions.find((r) => r.id === revisionId && r.userId === userId);
+    if (!revision || !revision.claimId) return;
+
+    if (response === 'exactly') {
+      await this.confirmClaim(userId, revision.claimId);
+    } else if (response === 'not_really') {
+      await this.rejectClaim(userId, revision.claimId);
+    }
+    // 'sort_of' — acknowledged but no automatic change
+  }
+
+  async getMicroScenario(userId: string): Promise<MicroScenarioView | null> {
+    const flags = await this.getFeatureFlags();
+    if (!flags.microScenariosEnabled) return null;
+
+    const existing = this.state.microScenarios.find(
+      (s) => s.userId === userId && s.status === 'pending',
+    );
+    if (existing) {
+      return {
+        id: existing.id,
+        targetDimension: existing.targetDimension,
+        prompt: existing.prompt,
+        options: existing.options,
+        reason: existing.reason,
+      };
+    }
+
+    const confirmed = new Set(
+      this.state.claims
+        .filter((c) => c.userId === userId && c.status === 'confirmed')
+        .map((c) => c.dimension),
+    );
+    const recentCount = this.state.microScenarios.filter(
+      (s) =>
+        s.userId === userId &&
+        s.status === 'answered' &&
+        Date.now() - new Date(s.createdAt).getTime() < 7 * 86_400_000,
+    ).length;
+    const answeredIds = new Set(
+      this.state.microScenarios
+        .filter((s) => s.userId === userId && s.status !== 'pending')
+        .map((s) => s.scenarioType),
+    );
+
+    const template = selectScenario(confirmed, recentCount, answeredIds);
+    if (!template) return null;
+
+    const scenario = scenarioToMicroScenario(userId, template);
+    this.state.microScenarios.push(scenario);
+    return {
+      id: scenario.id,
+      targetDimension: scenario.targetDimension,
+      prompt: scenario.prompt,
+      options: scenario.options,
+      reason: scenario.reason,
+    };
+  }
+
+  async answerMicroScenario(userId: string, scenarioId: string, value: string): Promise<Claim> {
+    const scenario = this.state.microScenarios.find(
+      (s) => s.id === scenarioId && s.userId === userId,
+    );
+    if (scenario) {
+      scenario.status = 'answered';
+      scenario.answeredAt = nowIso();
+    }
+
+    const dimension = scenario?.targetDimension ?? ('planning_style' as Dimension);
+    return this.answerMicroQuestion(userId, dimension, value);
+  }
+
+  async getPredictionGame(userId: string): Promise<PredictionGameView | null> {
+    const flags = await this.getFeatureFlags();
+    if (!flags.predictionGameEnabled) return null;
+
+    const existing = this.state.predictionEvents.find(
+      (p) => p.userId === userId && p.actualChoice === null,
+    );
+    if (existing) return predictionToView(existing);
+
+    const recent = this.state.predictionEvents.filter(
+      (p) =>
+        p.userId === userId &&
+        Date.now() - new Date(p.createdAt).getTime() < 7 * 86_400_000,
+    );
+    if (recent.length >= 2) return null;
+
+    const confirmed = this.state.claims.filter(
+      (c) => c.userId === userId && c.status === 'confirmed',
+    );
+    const pair = buildPredictionPair(confirmed);
+    if (!pair) return null;
+
+    const event = createPredictionEvent(userId, pair);
+    this.state.predictionEvents.push(event);
+    return predictionToView(event);
+  }
+
+  async submitPrediction(
+    userId: string,
+    predictionId: string,
+    choice: 'a' | 'b',
+    reason: string | null,
+  ): Promise<PredictionResultView> {
+    const event = this.state.predictionEvents.find(
+      (p) => p.id === predictionId && p.userId === userId,
+    );
+    if (!event) throw new Error('prediction not found');
+
+    const { updated, result } = resolvePrediction(event, choice, reason);
+    Object.assign(event, updated);
+    return result;
+  }
+
+  async getWeeklyRecap(userId: string): Promise<WeeklyRecapView | null> {
+    const flags = await this.getFeatureFlags();
+    if (!flags.weeklyRecapEnabled) return null;
+
+    const claims = this.state.claims.filter((c) => c.userId === userId);
+    const revisions = this.state.revisions.filter((r) => r.userId === userId);
+
+    const hasCandidate = this.state.introductions.some(
+      (i) =>
+        (i.userA === userId || i.userB === userId) &&
+        i.status === 'active',
+    );
+
+    return buildWeeklyRecap(claims, revisions, hasCandidate);
+  }
+
+  async getConversationStarter(
+    userId: string,
+    conversationId: string,
+  ): Promise<ConversationStarterView | null> {
+    const flags = await this.getFeatureFlags();
+    if (!flags.conversationStarterEnabled) return null;
+
+    const conv = this.state.conversations.find((c) => c.id === conversationId);
+    if (!conv) return null;
+
+    const match = this.state.matches.find((m) => m.id === conv.matchId);
+    if (!match) return null;
+
+    const intro = this.state.introductions.find((i) => i.id === match.introductionId);
+    if (!intro) return null;
+
+    const otherId = intro.userA === userId ? intro.userB : intro.userA;
+    const explanation = await this.buildExplanation(userId, otherId);
+    return buildConversationStarter(explanation.alignment, explanation.friction);
   }
 
   private async runAi<T>(task: AiTaskType, fn: () => Promise<T>): Promise<T | null> {

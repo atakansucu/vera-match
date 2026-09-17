@@ -25,6 +25,10 @@ import {
   useRejectClaim,
   useShareThought,
 } from '@/features/claims/hooks';
+import {
+  useAcknowledgeRevisionCard,
+  useRevisionCard,
+} from '@/features/matchmaker/hooks';
 import { classifyError } from '@/lib/errors';
 
 export default function MatchmakerScreen() {
@@ -37,12 +41,15 @@ export default function MatchmakerScreen() {
   const confirm = useConfirmClaim();
   const reject = useRejectClaim();
   const shareThought = useShareThought();
+  const revisionCardQuery = useRevisionCard();
+  const ackRevision = useAcknowledgeRevisionCard();
 
   const [thought, setThought] = useState('');
   const [choice, setChoice] = useState<string | null>(null);
 
   const pending = (insights.data ?? []).filter((i) => i.status === 'unconfirmed');
   const mq = microQuestion.data;
+  const revisionCard = revisionCardQuery.data;
 
   const submitThought = () => {
     const text = thought.trim();
@@ -58,6 +65,57 @@ export default function MatchmakerScreen() {
       />
 
       <VStack gap="xl">
+        {/* "I changed my mind" revision card */}
+        {revisionCard ? (
+          <Card elevated>
+            <VStack gap="md">
+              <Badge label="I changed my mind" tone="caution" />
+              <Text variant="body">{revisionCard.narrative}</Text>
+              <Text variant="callout" color="secondary">
+                Does that sound right?
+              </Text>
+              <HStack gap="sm">
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label="Exactly"
+                    onPress={() =>
+                      ackRevision.mutate({
+                        revisionId: revisionCard.revisionId,
+                        response: 'exactly',
+                      })
+                    }
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label="Sort of"
+                    variant="secondary"
+                    onPress={() =>
+                      ackRevision.mutate({
+                        revisionId: revisionCard.revisionId,
+                        response: 'sort_of',
+                      })
+                    }
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label="Not really"
+                    variant="ghost"
+                    onPress={() =>
+                      ackRevision.mutate({
+                        revisionId: revisionCard.revisionId,
+                        response: 'not_really',
+                      })
+                    }
+                  />
+                </View>
+              </HStack>
+            </VStack>
+          </Card>
+        ) : null}
+
+        {/* Micro-question from matching pipeline */}
         {mq ? (
           <Card elevated>
             <VStack gap="md">
@@ -84,6 +142,7 @@ export default function MatchmakerScreen() {
           </Card>
         ) : null}
 
+        {/* Unconfirmed hypotheses */}
         {pending.length > 0 ? (
           <VStack gap="md">
             <Text variant="label" color="secondary">
@@ -114,6 +173,7 @@ export default function MatchmakerScreen() {
           </VStack>
         ) : null}
 
+        {/* Share a thought */}
         <VStack gap="md">
           <Text variant="label" color="secondary">
             SHARE A THOUGHT
@@ -145,7 +205,7 @@ export default function MatchmakerScreen() {
         <Card>
           <HStack justify="space-between">
             <VStack gap="xxs" style={{ flex: 1 }}>
-              <Text variant="subheading">What my matchmaker knows</Text>
+              <Text variant="subheading">Your matchmaker&apos;s notebook</Text>
               <Text variant="caption" color="secondary">
                 Review and correct everything I believe about you.
               </Text>

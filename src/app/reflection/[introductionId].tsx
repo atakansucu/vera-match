@@ -23,8 +23,8 @@ const OUTCOME_OPTIONS: { value: DateOutcomeValue; label: string }[] = [
 ];
 
 const SECOND_DATE_OPTIONS: { value: SecondDateIntent; label: string }[] = [
-  { value: 'want_again', label: "I'd like to see them again" },
-  { value: 'no_continue', label: "I'd rather not continue" },
+  { value: 'want_again', label: 'Definitely' },
+  { value: 'no_continue', label: 'Probably not' },
   { value: 'prefer_not_say', label: 'Prefer not to say' },
 ];
 
@@ -86,30 +86,24 @@ export default function ReflectionScreen() {
 
           <VStack gap="sm">
             <Text variant="label" color="secondary">
+              WOULD YOU WANT TO SEE THEM AGAIN?
+            </Text>
+            <ChipGroup options={SECOND_DATE_OPTIONS} value={secondDate} onChange={setSecondDate} />
+          </VStack>
+
+          <VStack gap="sm">
+            <Text variant="label" color="secondary">
               DID YOU MEET?
             </Text>
             <ChipGroup options={OUTCOME_OPTIONS} value={outcome} onChange={setOutcome} />
           </VStack>
 
-          {outcome === 'met' ? (
-            <VStack gap="sm">
-              <Text variant="label" color="secondary">
-                AND?
-              </Text>
-              <ChipGroup
-                options={SECOND_DATE_OPTIONS}
-                value={secondDate}
-                onChange={setSecondDate}
-              />
-            </VStack>
-          ) : null}
-
           <VStack gap="sm">
             <Text variant="label" color="secondary">
-              ANYTHING ON YOUR MIND?
+              HOW DID IT ACTUALLY FEEL?
             </Text>
             <Field
-              accessibilityLabel="Anything on your mind?"
+              accessibilityLabel="How did it actually feel?"
               placeholder="It was easy to talk to them, but..."
               value={text}
               onChangeText={setText}
@@ -130,16 +124,17 @@ export default function ReflectionScreen() {
         <VStack gap="xl">
           {proposals.length > 0 ? (
             <>
+              <Text variant="subheading">One thing I learned</Text>
               <Text variant="body" color="secondary">
-                A couple of things stood out. Only what you confirm will shape future introductions.
+                Only what you confirm will shape future introductions.
               </Text>
               {proposals.map((proposal, index) => (
-                <Card key={index}>
+                <Card key={index} elevated>
                   <VStack gap="md">
                     <Text variant="body">{proposal.question}</Text>
                     <HStack gap="sm">
                       <View style={{ flex: 1 }}>
-                        <Button label="Yes" onPress={() => resolve(proposal, true)} />
+                        <Button label="Yep" onPress={() => resolve(proposal, true)} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Button
@@ -150,7 +145,7 @@ export default function ReflectionScreen() {
                       </View>
                       <View style={{ flex: 1 }}>
                         <Button
-                          label="No"
+                          label="Not quite"
                           variant="ghost"
                           onPress={() => resolve(proposal, false)}
                         />

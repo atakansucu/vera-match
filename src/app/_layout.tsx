@@ -45,6 +45,10 @@ export default function RootLayout() {
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
               />
               <Stack.Screen
+                name="prediction"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+              <Stack.Screen
                 name="report"
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
               />

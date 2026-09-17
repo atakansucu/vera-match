@@ -18,15 +18,23 @@ import type {
   ConsentType,
 } from '@/types/domain';
 import type {
+  ConversationStarterView,
   ConversationView,
   FeatureFlags,
+  HomeStateView,
   IntroductionView,
   MicroQuestionView,
+  MicroScenarioView,
   ModelInsightView,
+  NotebookView,
+  PredictionGameView,
+  PredictionResultView,
   ReportInput,
+  RevisionCardView,
   Session,
   UserDataExport,
   VerificationView,
+  WeeklyRecapView,
 } from '@/types/views';
 
 export interface ProfileInput {
@@ -147,6 +155,30 @@ export interface Backend {
     props?: Record<string, string | number | boolean | null>,
   ): Promise<void>;
   getFeatureFlags(): Promise<FeatureFlags>;
+
+  // --- Engagement v2 ---
+  getHomeState(userId: string): Promise<HomeStateView>;
+  getNotebook(userId: string): Promise<NotebookView>;
+  getLatestRevisionCard(userId: string): Promise<RevisionCardView | null>;
+  acknowledgeRevisionCard(
+    userId: string,
+    revisionId: string,
+    response: 'exactly' | 'sort_of' | 'not_really',
+  ): Promise<void>;
+  getMicroScenario(userId: string): Promise<MicroScenarioView | null>;
+  answerMicroScenario(userId: string, scenarioId: string, value: string): Promise<Claim>;
+  getPredictionGame(userId: string): Promise<PredictionGameView | null>;
+  submitPrediction(
+    userId: string,
+    predictionId: string,
+    choice: 'a' | 'b',
+    reason: string | null,
+  ): Promise<PredictionResultView>;
+  getWeeklyRecap(userId: string): Promise<WeeklyRecapView | null>;
+  getConversationStarter(
+    userId: string,
+    conversationId: string,
+  ): Promise<ConversationStarterView | null>;
 
   // --- Account (GDPR) ---
   exportData(userId: string): Promise<UserDataExport>;

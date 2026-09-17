@@ -125,7 +125,7 @@ export default function MeScreen() {
         <Card padding="none">
           <RowLink
             icon="compass"
-            label="What my matchmaker knows"
+            label="Your matchmaker's notebook"
             onPress={() => router.push('/model')}
           />
         </Card>

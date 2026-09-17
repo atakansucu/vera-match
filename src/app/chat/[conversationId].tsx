@@ -4,9 +4,10 @@ import { FlatList, KeyboardAvoidingView, Platform, Pressable, TextInput, View } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ErrorBanner, ScreenHeader } from '@/components';
-import { HStack, Icon, Text, useTheme, VStack } from '@/design';
+import { Button, HStack, Icon, Text, useTheme, VStack } from '@/design';
 import { useConversations, useMessages, useSendMessage } from '@/features/chat/hooks';
-import { useUserId } from '@/hooks/app';
+import { useConversationStarter } from '@/features/matchmaker/hooks';
+import { useBackend, useUserId } from '@/hooks/app';
 import { classifyError, type ErrorKind } from '@/lib/errors';
 
 export default function ConversationScreen() {
@@ -18,9 +19,12 @@ export default function ConversationScreen() {
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<ErrorKind | null>(null);
 
+  const backend = useBackend();
   const conversations = useConversations();
   const messagesQuery = useMessages(conversationId);
   const sendMessage = useSendMessage(conversationId);
+  const starter = useConversationStarter(conversationId);
+  const [starterDismissed, setStarterDismissed] = useState(false);
 
   const conversation = conversations.data?.find((c) => c.id === conversationId);
   const other = conversation?.other;
@@ -96,6 +100,52 @@ export default function ConversationScreen() {
             Been on a date with {other?.firstName ?? 'them'}? Share how it felt {'\u2192'}
           </Text>
         </Pressable>
+      ) : null}
+
+      {starter.data && !starterDismissed && messages.length === 0 ? (
+        <View
+          style={{
+            marginHorizontal: theme.spacing.xl,
+            marginBottom: theme.spacing.sm,
+            padding: theme.spacing.lg,
+            borderRadius: theme.radii.md,
+            backgroundColor: theme.colors.surface,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
+        >
+          <VStack gap="sm">
+            <Text variant="caption" color="secondary">
+              Something you might enjoy talking about
+            </Text>
+            <Text variant="body">{starter.data.text}</Text>
+            <HStack gap="sm">
+              <Button
+                label="Use this"
+                variant="secondary"
+                fullWidth={false}
+                onPress={() => {
+                  void backend.track(userId, 'conversation_starter_used', {
+                    conversationId,
+                  });
+                  setDraft(starter.data!.text);
+                  setStarterDismissed(true);
+                }}
+              />
+              <Button
+                label="Skip"
+                variant="ghost"
+                fullWidth={false}
+                onPress={() => {
+                  void backend.track(userId, 'conversation_starter_skipped', {
+                    conversationId,
+                  });
+                  setStarterDismissed(true);
+                }}
+              />
+            </HStack>
+          </VStack>
+        </View>
       ) : null}
 
       <KeyboardAvoidingView
