@@ -498,6 +498,15 @@ export class DevBackend implements Backend {
     if (!intro || (intro.userA !== userId && intro.userB !== userId)) {
       throw new Error('Introduction not found.');
     }
+
+    // Idempotent: an already-matched introduction returns its existing conversation.
+    if (intro.status === 'matched') {
+      const existing = this.state.matches.find((m) => m.introductionId === introductionId);
+      const conversation =
+        existing && this.state.conversations.find((c) => c.matchId === existing.id);
+      return { mutual: true, conversationId: conversation?.id ?? null };
+    }
+
     this.upsertDecision(introductionId, userId, decision);
 
     if (decision === 'not_for_me') {
@@ -520,6 +529,14 @@ export class DevBackend implements Backend {
 
     if (!bothInterested) {
       return { mutual: false, conversationId: null };
+    }
+
+    // Guard against creating a duplicate match/conversation for the same pair.
+    const existingMatch = this.state.matches.find((m) => m.introductionId === introductionId);
+    if (existingMatch) {
+      intro.status = 'matched';
+      const conversation = this.state.conversations.find((c) => c.matchId === existingMatch.id);
+      return { mutual: true, conversationId: conversation?.id ?? null };
     }
 
     intro.status = 'matched';
