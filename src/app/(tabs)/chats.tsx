@@ -34,6 +34,9 @@ export default function ChatsScreen() {
           renderItem={({ item }) => (
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={`Conversation with ${item.other.firstName}${
+                item.unreadCount > 0 ? `, ${item.unreadCount} unread` : ''
+              }`}
               onPress={() =>
                 router.push({
                   pathname: '/chat/[conversationId]',

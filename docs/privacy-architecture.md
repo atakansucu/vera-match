@@ -83,17 +83,18 @@ explanation only ever says "You both place strong importance on trust." Raw prom
 ## Data export
 
 `Backend.exportData(userId)` returns a structured copy of the user's profile, preferences,
-consents, claims, reflections, introductions, and messages. The production implementation assembles
-the same from the user's own rows. **[LEGAL REVIEW]** completeness/format for a GDPR Art. 15/20
-request.
+consents, claims, reflections, photos (ids/positions), date outcomes, introductions (without
+`rank_score`), and own messages. The production implementation is `export_own_data()`.
+**[LEGAL REVIEW]** completeness/format for a GDPR Art. 15/20 request.
 
 ## Account deletion
 
 `Backend.deleteAccount(userId)` removes/anonymizes the profile, preferences, consents, photos,
 claims, revisions, reflections, date outcomes, and push tokens, and clears the session. No orphaned
-AI memory or embeddings remain. **[LEGAL REVIEW]** which safety records (e.g. reports, block/ban
-history) may need retention for legitimate-interest/safety reasons, and for how long — retention of
-such records must be explicitly designed and documented, not incidental.
+AI memory or embeddings remain. Reports are retained in anonymized form (reporter identity and
+notes stripped; foreign keys set null). Messages sent by the deleted user cascade-delete with the
+profile. **[LEGAL REVIEW]** retention period for anonymized safety records, and whether a remaining
+chat participant should keep a copy of the deleted user's messages.
 
 ## Location privacy
 

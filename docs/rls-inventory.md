@@ -33,6 +33,7 @@ RPCs:
 - `get_introduction_profile(uuid)` — SECURITY DEFINER, participant check, reveal-safe fields only.
 - `create_introduction(uuid, uuid)` — service role only (concierge).
 - `submit_decision(uuid, decision)` — SECURITY DEFINER, double-blind mutual detection.
-- `delete_own_account()` — SECURITY DEFINER, caller only.
+- `delete_own_account()` — SECURITY DEFINER, caller only. Anonymizes reports, then deletes the profile (cascade).
+- `export_own_data()` — SECURITY DEFINER, caller only. Never includes `rank_score` or another user's private memory.
 
 **Still required before launch:** pgTAP / integration tests against a live Postgres with two JWTs (this VM has no Docker). Projection allow-lists are covered by unit tests against `DevBackend`.

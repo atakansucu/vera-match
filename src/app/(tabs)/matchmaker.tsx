@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Callout, ScreenHeader } from '@/components';
+import { Callout, ErrorBanner, ScreenHeader } from '@/components';
 import { ChipGroup } from '@/components/form';
 import {
   Badge,
@@ -25,6 +25,7 @@ import {
   useRejectClaim,
   useShareThought,
 } from '@/features/claims/hooks';
+import { classifyError } from '@/lib/errors';
 
 export default function MatchmakerScreen() {
   const theme = useTheme();
@@ -118,6 +119,7 @@ export default function MatchmakerScreen() {
             SHARE A THOUGHT
           </Text>
           <Field
+            accessibilityLabel="Share a thought with your matchmaker"
             placeholder="Something on your mind about dating or what you're looking for..."
             value={thought}
             onChangeText={setThought}
@@ -131,6 +133,7 @@ export default function MatchmakerScreen() {
             loading={shareThought.isPending}
             onPress={submitThought}
           />
+          {shareThought.isError ? <ErrorBanner kind={classifyError(shareThought.error)} /> : null}
           {shareThought.isSuccess && shareThought.data.createdClaims.length > 0 ? (
             <Callout>
               Thank you — I noted something to check with you. You&apos;ll find it above.

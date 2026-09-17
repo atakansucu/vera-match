@@ -3,10 +3,11 @@ import { useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ScreenHeader } from '@/components';
+import { ErrorBanner, ScreenHeader } from '@/components';
 import { HStack, Icon, Text, useTheme, VStack } from '@/design';
 import { useConversations, useMessages, useSendMessage } from '@/features/chat/hooks';
 import { useUserId } from '@/hooks/app';
+import { classifyError, type ErrorKind } from '@/lib/errors';
 
 export default function ConversationScreen() {
   const theme = useTheme();
@@ -15,6 +16,7 @@ export default function ConversationScreen() {
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const listRef = useRef<FlatList>(null);
   const [draft, setDraft] = useState('');
+  const [sendError, setSendError] = useState<ErrorKind | null>(null);
 
   const conversations = useConversations();
   const messagesQuery = useMessages(conversationId);
@@ -28,7 +30,13 @@ export default function ConversationScreen() {
     const body = draft.trim();
     if (!body) return;
     setDraft('');
-    sendMessage.mutate(body);
+    setSendError(null);
+    sendMessage.mutate(body, {
+      onError: (error) => {
+        setDraft(body);
+        setSendError(classifyError(error));
+      },
+    });
   };
 
   return (
@@ -103,9 +111,13 @@ export default function ConversationScreen() {
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={
             <VStack gap="sm" align="center" style={{ marginTop: theme.spacing.xxl }}>
-              <Text variant="body" color="secondary" align="center">
-                You matched. Say hello whenever you&apos;re ready.
-              </Text>
+              {messagesQuery.isError ? (
+                <ErrorBanner kind="staleChat" />
+              ) : (
+                <Text variant="body" color="secondary" align="center">
+                  You matched. Say hello whenever you&apos;re ready.
+                </Text>
+              )}
             </VStack>
           }
           renderItem={({ item }) => {
@@ -134,6 +146,12 @@ export default function ConversationScreen() {
           }}
         />
 
+        {sendError ? (
+          <View style={{ paddingHorizontal: theme.spacing.xl, paddingBottom: theme.spacing.sm }}>
+            <ErrorBanner kind={sendError} />
+          </View>
+        ) : null}
+
         <HStack
           gap="sm"
           style={{
@@ -148,6 +166,7 @@ export default function ConversationScreen() {
             onChangeText={setDraft}
             placeholder="Message"
             placeholderTextColor={theme.colors.textTertiary}
+            accessibilityLabel="Message"
             multiline
             style={{
               flex: 1,

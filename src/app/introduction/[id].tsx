@@ -3,7 +3,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Callout, EmptyState, FullScreenLoader, Photo, ScreenHeader } from '@/components';
+import {
+  Callout,
+  EmptyState,
+  ErrorBanner,
+  FullScreenLoader,
+  Photo,
+  ScreenHeader,
+} from '@/components';
 import {
   Badge,
   Button,
@@ -19,6 +26,7 @@ import {
 } from '@/design';
 import { useIntroduction, useSubmitDecision } from '@/features/introductions/hooks';
 import { useBackend, useUserId } from '@/hooks/app';
+import { classifyError, type ErrorKind } from '@/lib/errors';
 import type { ExplanationPoint } from '@/types/domain';
 
 type Stage = 'explanation' | 'profile' | 'result';
@@ -38,6 +46,7 @@ export default function IntroductionScreen() {
   const [result, setResult] = useState<{ mutual: boolean; conversationId: string | null } | null>(
     null,
   );
+  const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
 
   if (introQuery.isPending) return <FullScreenLoader />;
   const intro = introQuery.data;
@@ -58,13 +67,18 @@ export default function IntroductionScreen() {
   };
 
   const decide = async (value: 'interested' | 'not_for_me') => {
-    const outcome = await decision.mutateAsync(value);
-    if (value === 'not_for_me') {
-      router.back();
-      return;
+    setErrorKind(null);
+    try {
+      const outcome = await decision.mutateAsync(value);
+      if (value === 'not_for_me') {
+        router.back();
+        return;
+      }
+      setResult(outcome);
+      setStage('result');
+    } catch (error) {
+      setErrorKind(classifyError(error));
     }
-    setResult(outcome);
-    setStage('result');
   };
 
   return (
@@ -138,6 +152,7 @@ export default function IntroductionScreen() {
           <Divider />
 
           <VStack gap="md">
+            {errorKind ? <ErrorBanner kind={errorKind} /> : null}
             <Button
               label="I'd like to meet them"
               loading={decision.isPending}

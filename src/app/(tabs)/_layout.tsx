@@ -22,12 +22,17 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Home', tabBarIcon: ({ color }) => <Icon name="home" color={color} /> }}
+        options={{
+          title: 'Home',
+          tabBarAccessibilityLabel: 'Home',
+          tabBarIcon: ({ color }) => <Icon name="home" color={color} />,
+        }}
       />
       <Tabs.Screen
         name="matchmaker"
         options={{
           title: 'Matchmaker',
+          tabBarAccessibilityLabel: 'Matchmaker',
           tabBarIcon: ({ color }) => <Icon name="compass" color={color} />,
         }}
       />
@@ -35,12 +40,17 @@ export default function TabsLayout() {
         name="chats"
         options={{
           title: 'Chats',
+          tabBarAccessibilityLabel: 'Chats',
           tabBarIcon: ({ color }) => <Icon name="message-circle" color={color} />,
         }}
       />
       <Tabs.Screen
         name="me"
-        options={{ title: 'Me', tabBarIcon: ({ color }) => <Icon name="user" color={color} /> }}
+        options={{
+          title: 'Me',
+          tabBarAccessibilityLabel: 'Me',
+          tabBarIcon: ({ color }) => <Icon name="user" color={color} />,
+        }}
       />
     </Tabs>
   );

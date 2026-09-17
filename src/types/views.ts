@@ -109,4 +109,6 @@ export interface UserDataExport {
   reflections: unknown;
   introductions: unknown;
   messages: unknown;
+  photos: unknown;
+  dateOutcomes: unknown;
 }

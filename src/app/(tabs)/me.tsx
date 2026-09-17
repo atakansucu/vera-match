@@ -16,10 +16,11 @@ import {
   VStack,
 } from '@/design';
 import { useAuthActions } from '@/features/auth/useAuth';
+import { useBackend, useUserId } from '@/hooks/app';
 import { ageFromDob } from '@/lib/date';
+import { classifyError, messageFor } from '@/lib/errors';
 import { logDev } from '@/lib/log';
 import { registerForPushNotifications } from '@/lib/notifications';
-import { useBackend, useUserId } from '@/hooks/app';
 import type { IconName } from '@/design';
 
 export default function MeScreen() {
@@ -62,9 +63,13 @@ export default function MeScreen() {
   };
 
   const onExport = async () => {
-    const data = await backend.exportData(userId);
-    logDev('data_export', data);
-    Alert.alert('Your data is ready', 'A full copy of your data has been prepared for export.');
+    try {
+      const data = await backend.exportData(userId);
+      logDev('data_export', data);
+      Alert.alert('Your data is ready', 'A full copy of your data has been prepared for export.');
+    } catch (error) {
+      Alert.alert('Export failed', messageFor(classifyError(error)));
+    }
   };
 
   const onDelete = () => {
@@ -77,8 +82,12 @@ export default function MeScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await backend.deleteAccount(userId);
-            await auth.signOut();
+            try {
+              await backend.deleteAccount(userId);
+              await auth.signOut();
+            } catch (error) {
+              Alert.alert('Could not delete', messageFor(classifyError(error)));
+            }
           },
         },
       ],
@@ -190,7 +199,12 @@ function RowLink({
 }) {
   const theme = useTheme();
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={{ padding: theme.spacing.lg }}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={{ padding: theme.spacing.lg }}
+    >
       <HStack justify="space-between">
         <HStack gap="md">
           <Icon

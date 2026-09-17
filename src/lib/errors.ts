@@ -20,3 +20,40 @@ export type ErrorKind = keyof typeof ERROR_COPY;
 export function messageFor(kind: ErrorKind): string {
   return ERROR_COPY[kind];
 }
+
+/**
+ * Map an unknown failure onto a user-facing kind. The original message is never
+ * shown — it may contain SQL, stack traces, or vendor internals.
+ */
+export function classifyError(error: unknown): ErrorKind {
+  const raw = error instanceof Error ? error.message : String(error ?? '');
+  const text = raw.toLowerCase();
+
+  if (
+    /(network request failed|failed to fetch|offline|net::|econnrefused|enetunreach)/.test(text)
+  ) {
+    return 'offline';
+  }
+  if (/(supabase|jwt|auth session|postgres|postgrest|pgrst)/.test(text)) {
+    return 'supabaseUnavailable';
+  }
+  if (/(timeout|timed out|etimedout|deadline exceeded)/.test(text)) {
+    return 'llmTimeout';
+  }
+  if (/(malformed|unrecognized_keys|invalid_type|zod|json parse)/.test(text)) {
+    return 'llmMalformed';
+  }
+  if (/(upload|storage|image picker|photo)/.test(text)) {
+    return 'uploadFailed';
+  }
+  if (/(expired|signed url)/.test(text)) {
+    return 'expiredPhotoUrl';
+  }
+  if (/(already recorded|duplicate|unique constraint|23505)/.test(text)) {
+    return 'duplicateAction';
+  }
+  if (/(not a participant|no longer message|conversation may have changed)/.test(text)) {
+    return 'staleChat';
+  }
+  return 'generic';
+}

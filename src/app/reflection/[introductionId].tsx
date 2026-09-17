@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Callout, ScreenHeader } from '@/components';
+import { Callout, ErrorBanner, ScreenHeader } from '@/components';
 import { ChipGroup } from '@/components/form';
 import { Button, Card, HStack, Screen, Spacer, Text, VStack } from '@/design';
 import { Field } from '@/design/primitives/Field';
@@ -12,6 +12,7 @@ import {
   useSubmitDateOutcome,
   useSubmitReflection,
 } from '@/features/reflections/hooks';
+import { classifyError, type ErrorKind } from '@/lib/errors';
 import type { RevisionProposal } from '@/services/ai/schemas';
 import type { DateOutcomeValue, SecondDateIntent } from '@/types/domain';
 
@@ -41,18 +42,24 @@ export default function ReflectionScreen() {
   const [text, setText] = useState('');
   const [reflectionId, setReflectionId] = useState<string | null>(null);
   const [proposals, setProposals] = useState<RevisionProposal[] | null>(null);
+  const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
 
   const onShare = async () => {
-    if (outcome) {
-      await submitOutcome.mutateAsync({
-        introductionId,
-        outcome,
-        secondDate: secondDate ?? 'prefer_not_say',
-      });
+    setErrorKind(null);
+    try {
+      if (outcome) {
+        await submitOutcome.mutateAsync({
+          introductionId,
+          outcome,
+          secondDate: secondDate ?? 'prefer_not_say',
+        });
+      }
+      const result = await submitReflection.mutateAsync({ introductionId, text: text.trim() });
+      setReflectionId(result.reflection.id);
+      setProposals(result.proposals);
+    } catch (error) {
+      setErrorKind(classifyError(error));
     }
-    const result = await submitReflection.mutateAsync({ introductionId, text: text.trim() });
-    setReflectionId(result.reflection.id);
-    setProposals(result.proposals);
   };
 
   const resolve = (proposal: RevisionProposal, accept: boolean) => {
@@ -75,6 +82,7 @@ export default function ReflectionScreen() {
             This is just between us. I only update what I&apos;ve learned about you with your
             confirmation.
           </Callout>
+          {errorKind ? <ErrorBanner kind={errorKind} /> : null}
 
           <VStack gap="sm">
             <Text variant="label" color="secondary">
@@ -101,6 +109,7 @@ export default function ReflectionScreen() {
               ANYTHING ON YOUR MIND?
             </Text>
             <Field
+              accessibilityLabel="Anything on your mind?"
               placeholder="It was easy to talk to them, but..."
               value={text}
               onChangeText={setText}

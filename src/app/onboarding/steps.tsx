@@ -22,6 +22,7 @@ import {
   type OnboardingForm,
 } from '@/features/onboarding/schema';
 import { useSubmitOnboarding } from '@/features/onboarding/useSubmitOnboarding';
+import { classifyError, messageFor } from '@/lib/errors';
 import { pickImage } from '@/lib/photos';
 import { getBackend } from '@/services/backend';
 import { useSessionStore } from '@/state/session';
@@ -64,8 +65,8 @@ export default function OnboardingSteps() {
     try {
       await submit(form);
       router.replace('/');
-    } catch {
-      setError('Something went wrong saving your profile. Please try again.');
+    } catch (error) {
+      setError(messageFor(classifyError(error)));
     } finally {
       setSubmitting(false);
     }
@@ -79,8 +80,12 @@ export default function OnboardingSteps() {
 
   const addPhoto = async () => {
     if (form.photos.length >= MAX_PHOTOS) return;
-    const uri = await pickImage();
-    if (uri) update({ photos: [...form.photos, uri] });
+    try {
+      const uri = await pickImage();
+      if (uri) update({ photos: [...form.photos, uri] });
+    } catch (error) {
+      setError(messageFor(classifyError(error)));
+    }
   };
 
   const progress = useMemo(
@@ -282,6 +287,7 @@ export default function OnboardingSteps() {
               <Pressable
                 key={uri}
                 onPress={() => update({ photos: form.photos.filter((_, i) => i !== index) })}
+                accessibilityRole="button"
                 accessibilityLabel="Remove photo"
                 style={{ width: 96 }}
               >
@@ -294,6 +300,7 @@ export default function OnboardingSteps() {
             {form.photos.length < MAX_PHOTOS ? (
               <Pressable
                 onPress={addPhoto}
+                accessibilityRole="button"
                 accessibilityLabel="Add photo"
                 style={{
                   width: 96,

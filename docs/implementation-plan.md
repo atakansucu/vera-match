@@ -117,3 +117,17 @@ gender + partner preference + consent, relationship goal, age range, distance, d
 2–4 style questions, photos, verification state; RHF/Zod validation; `onboarding_started/
 completed` events; profiles/preferences/consents/photos/verification migrations + RLS;
 onboarding + age + consent unit tests; typecheck/lint/test green; committed + pushed.
+
+**Phase 7:** date-happened + second-date intent stored privately per user (upsert); post-date
+reflection persisted before AI runs; AI proposes unconfirmed revisions; only confirmed revisions
+enter matching; rejected revisions are recorded and ignored; private reflection text never appears
+in introduction explanations; typecheck/lint/test green; committed + pushed.
+
+**Phase 8:** `export_own_data` / `exportData` (own rows only, no `rank_score`); `delete_own_account`
+removes personal data and anonymizes reports; RLS inventory; block/report abuse flows; calm error
+copy for offline / LLM timeout / malformed / upload / stale chat; `ai_usage_log` metadata without
+prompts; typecheck/lint/test green; committed + pushed.
+
+**Phase 9:** skeleton animation via design tokens; accessibility labels on buttons, chips, tabs,
+chat composer, and lists; Expo notifications scaffolding with generic lock-screen copy; seeded demo
+walkthrough in README; MIT LICENSE; typecheck/lint/test green; committed + pushed.

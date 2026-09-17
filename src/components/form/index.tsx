@@ -103,6 +103,7 @@ export function ToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
+        accessibilityLabel={label}
         trackColor={{ true: theme.colors.accent, false: theme.colors.borderStrong }}
         thumbColor={theme.colors.surface}
       />

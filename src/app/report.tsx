@@ -2,12 +2,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, View } from 'react-native';
 
-import { Callout, ScreenHeader } from '@/components';
+import { Callout, ErrorBanner, ScreenHeader } from '@/components';
 import { ChipGroup } from '@/components/form';
 import { Button, Divider, Screen, Text, VStack } from '@/design';
 import { Field } from '@/design/primitives/Field';
 import { REPORT_CATEGORY_OPTIONS } from '@/features/safety/categories';
 import { useBlockUser, useReportUser } from '@/features/safety/hooks';
+import { classifyError, type ErrorKind } from '@/lib/errors';
 import type { ReportCategory } from '@/types/domain';
 
 export default function ReportScreen() {
@@ -23,11 +24,13 @@ export default function ReportScreen() {
   const block = useBlockUser();
   const [category, setCategory] = useState<ReportCategory | null>(null);
   const [note, setNote] = useState('');
+  const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
 
   const name = params.name ?? 'this person';
 
   const onSubmit = () => {
     if (!category) return;
+    setErrorKind(null);
     report.mutate(
       {
         reportedUserId: params.userId,
@@ -41,6 +44,7 @@ export default function ReportScreen() {
           Alert.alert('Thank you', 'Our team will review this. Your report is confidential.');
           router.back();
         },
+        onError: (error) => setErrorKind(classifyError(error)),
       },
     );
   };
@@ -91,6 +95,7 @@ export default function ReportScreen() {
           loading={report.isPending}
           onPress={onSubmit}
         />
+        {errorKind ? <ErrorBanner kind={errorKind} /> : null}
 
         <Divider />
 

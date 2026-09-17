@@ -7,18 +7,28 @@ async function demo(backend: DevBackend): Promise<string> {
 }
 
 describe('privacy (Phase 8 export / delete / isolation)', () => {
-  it('exports the user’s own data, including private reflections', async () => {
+  it('exports the user’s own data, including private reflections and outcomes', async () => {
     const backend = new DevBackend();
     const userId = await demo(backend);
+    await backend.submitDateOutcome(userId, 'intro-ava-ben', 'met', 'want_again');
     const data = await backend.exportData(userId);
 
     expect(data.exportedAt).toBeTruthy();
     expect((data.profile as { id: string }).id).toBe(userId);
     expect(Array.isArray(data.claims)).toBe(true);
     expect(Array.isArray(data.reflections)).toBe(true);
-    // Reflections stay in the export (they are the user’s own data).
+    expect(Array.isArray(data.photos)).toBe(true);
+    expect(Array.isArray(data.dateOutcomes)).toBe(true);
+
     const reflections = data.reflections as { userId: string; rawText: string }[];
     expect(reflections.every((r) => r.userId === userId)).toBe(true);
+    expect(reflections.some((r) => /cheated on in my last relationship/.test(r.rawText))).toBe(
+      true,
+    );
+
+    const intros = data.introductions as Record<string, unknown>[];
+    expect(intros.length).toBeGreaterThan(0);
+    expect(intros.every((row) => !('rankScore' in row))).toBe(true);
   });
 
   it('never puts another user’s private reflection into an introduction explanation', async () => {
@@ -33,7 +43,7 @@ describe('privacy (Phase 8 export / delete / isolation)', () => {
       ...intro!.explanation.unknowns,
     ].map((p) => p.text.toLowerCase());
 
-    // Seeded private reflection about planning with Ben must not leak into Liam's intro.
+    // Seeded private reflection about Ben must not leak into Liam's intro.
     expect(texts.join(' ')).not.toMatch(/cheated|affair|last relationship/);
     expect(texts.join(' ')).not.toMatch(/ben/);
   });
@@ -41,6 +51,14 @@ describe('privacy (Phase 8 export / delete / isolation)', () => {
   it('deletes the profile, claims, photos, reflections and session', async () => {
     const backend = new DevBackend();
     const userId = await demo(backend);
+
+    await backend.reportUser(userId, {
+      reportedUserId: 'david',
+      category: 'harassment',
+      contextType: 'message',
+      contextId: 'conv-ava-david',
+      note: 'private reporter note',
+    });
 
     await backend.deleteAccount(userId);
 
@@ -53,6 +71,13 @@ describe('privacy (Phase 8 export / delete / isolation)', () => {
     expect(exportAfter.profile).toBeNull();
     expect(exportAfter.claims as unknown[]).toEqual([]);
     expect(exportAfter.reflections as unknown[]).toEqual([]);
+    expect(exportAfter.dateOutcomes as unknown[]).toEqual([]);
+    expect(exportAfter.photos as unknown[]).toEqual([]);
+
+    // Anonymized safety records must not keep the reporter's note or identity.
+    const davidView = await backend.listConversations('david');
+    expect(JSON.stringify(davidView)).not.toMatch(/private reporter note/);
+    expect(JSON.stringify(davidView)).not.toMatch(userId);
   });
 
   it('does not leak reporter identity to the reported user', async () => {
@@ -63,11 +88,25 @@ describe('privacy (Phase 8 export / delete / isolation)', () => {
       category: 'harassment',
       contextType: 'message',
       contextId: 'conv-ava-david',
-      note: 'test',
+      note: 'confidential reporter note',
     });
     // There is no API for the reported user to list reports against them.
     const davidView = await backend.listConversations('david');
     expect(JSON.stringify(davidView)).not.toMatch(/harassment/);
+    expect(JSON.stringify(davidView)).not.toMatch(/confidential reporter note/);
     expect(JSON.stringify(davidView)).not.toMatch(/reporter/);
+  });
+
+  it('records AI usage metadata without storing prompts or reflection text', async () => {
+    const backend = new DevBackend();
+    const userId = await demo(backend);
+    const unique = 'UNIQUE_REFLECTION_PHRASE_PLANNING_xyzzy';
+
+    await backend.submitReflection(userId, 'intro-ava-ben', unique);
+
+    const usage = backend.aiUsageMetadata();
+    expect(usage.some((row) => row.taskType === 'reconcile_reflection' && row.success)).toBe(true);
+    expect(JSON.stringify(usage)).not.toMatch(/UNIQUE_REFLECTION_PHRASE/);
+    expect(JSON.stringify(usage)).not.toMatch(/xyzzy/);
   });
 });

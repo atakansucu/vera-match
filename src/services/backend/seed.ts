@@ -573,7 +573,7 @@ export function createSeedState(): DevState {
       userId: 'ava',
       introductionId: 'intro-ava-ben',
       rawText:
-        'Really easy conversation, but it felt like we had completely different attitudes toward planning our week.',
+        'Really easy conversation, but it felt like we had completely different attitudes toward planning our week. I still think about how I was cheated on in my last relationship — that stays between us.',
       aiProcessed: true,
       createdAt: daysAgo(11),
     },

@@ -8,6 +8,7 @@ import { Button, Screen, Text, VStack } from '@/design';
 import { Field } from '@/design/primitives/Field';
 import { useAuthActions } from '@/features/auth/useAuth';
 import { emailSchema, isEmailDomainAllowed } from '@/features/auth/validation';
+import { classifyError, messageFor } from '@/lib/errors';
 import { getBackend } from '@/services/backend';
 
 interface FormValues {
@@ -36,8 +37,8 @@ export default function SignInScreen() {
     try {
       const { devCode } = await auth.sendCode(email);
       router.push({ pathname: '/(auth)/verify', params: { email, devCode: devCode ?? '' } });
-    } catch {
-      setFormError('Something went wrong sending your code. Please try again.');
+    } catch (error) {
+      setFormError(messageFor(classifyError(error)));
     } finally {
       setSubmitting(false);
     }

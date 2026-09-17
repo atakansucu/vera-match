@@ -5,5 +5,7 @@ export { EmptyState } from './EmptyState';
 export type { EmptyStateProps } from './EmptyState';
 export { Callout } from './Callout';
 export type { CalloutProps } from './Callout';
+export { ErrorBanner } from './ErrorBanner';
+export type { ErrorBannerProps } from './ErrorBanner';
 export { ScreenHeader } from './ScreenHeader';
 export type { ScreenHeaderProps } from './ScreenHeader';

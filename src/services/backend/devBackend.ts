@@ -462,14 +462,22 @@ export class DevBackend implements Backend {
     outcome: DateOutcomeValue,
     secondDate: SecondDateIntent,
   ): Promise<void> {
-    this.state.dateOutcomes.push({
-      id: uid('outcome'),
-      introductionId,
-      userId,
-      outcome,
-      secondDateIntent: secondDate,
-      createdAt: nowIso(),
-    });
+    const existing = this.state.dateOutcomes.find(
+      (row) => row.introductionId === introductionId && row.userId === userId,
+    );
+    if (existing) {
+      existing.outcome = outcome;
+      existing.secondDateIntent = secondDate;
+    } else {
+      this.state.dateOutcomes.push({
+        id: uid('outcome'),
+        introductionId,
+        userId,
+        outcome,
+        secondDateIntent: secondDate,
+        createdAt: nowIso(),
+      });
+    }
     await this.track(userId, 'date_reported', { introductionId, outcome });
   }
 
@@ -742,14 +750,33 @@ export class DevBackend implements Backend {
       consents: this.state.consents.filter((c) => c.userId === userId),
       claims: this.state.claims.filter((c) => c.userId === userId),
       reflections: this.state.reflections.filter((r) => r.userId === userId),
-      introductions: this.state.introductions.filter(
-        (i) => i.userA === userId || i.userB === userId,
-      ),
+      // rank_score is internal and must never leave the server, including exports.
+      introductions: this.state.introductions
+        .filter((i) => i.userA === userId || i.userB === userId)
+        .map((i) => ({
+          id: i.id,
+          userA: i.userA,
+          userB: i.userB,
+          status: i.status,
+          algoVersion: i.algoVersion,
+          createdAt: i.createdAt,
+          expiresAt: i.expiresAt,
+        })),
       messages: this.state.messages.filter((m) => m.senderId === userId),
+      photos: this.state.photos
+        .filter((p) => p.userId === userId)
+        .map((p) => ({ id: p.id, position: p.position, isPrimary: p.isPrimary })),
+      dateOutcomes: this.state.dateOutcomes.filter((o) => o.userId === userId),
     };
   }
 
   async deleteAccount(userId: string): Promise<void> {
+    this.state.reports = this.state.reports.map((report) => ({
+      ...report,
+      reporterId: report.reporterId === userId ? 'deleted' : report.reporterId,
+      reportedUserId: report.reportedUserId === userId ? 'deleted' : report.reportedUserId,
+      note: report.reporterId === userId ? '' : report.note,
+    }));
     this.state.profiles.delete(userId);
     this.state.preferences.delete(userId);
     this.state.consents = this.state.consents.filter((c) => c.userId !== userId);
@@ -758,10 +785,31 @@ export class DevBackend implements Backend {
     this.state.revisions = this.state.revisions.filter((r) => r.userId !== userId);
     this.state.reflections = this.state.reflections.filter((r) => r.userId !== userId);
     this.state.dateOutcomes = this.state.dateOutcomes.filter((o) => o.userId !== userId);
+    for (const record of this.state.usage) {
+      if (record.userId === userId) record.userId = null;
+    }
+    for (const event of this.state.events) {
+      if (event.userId === userId) event.userId = null;
+    }
     for (const [email, session] of this.state.usersByEmail) {
       if (session.userId === userId) this.state.usersByEmail.delete(email);
     }
     if (this.state.session?.userId === userId) this.state.session = null;
+  }
+
+  /** AI usage metadata only — never includes prompts or reflection text. Tests use this. */
+  aiUsageMetadata(): {
+    taskType: AiTaskType;
+    model: string;
+    success: boolean;
+    errorCode: string | null;
+  }[] {
+    return this.state.usage.map((record) => ({
+      taskType: record.taskType,
+      model: record.model,
+      success: record.success,
+      errorCode: record.errorCode,
+    }));
   }
 
   // -------------------------------------------------------------------------

@@ -30,6 +30,7 @@ export function Chip({ label, selected = false, onPress, disabled }: ChipProps) 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{ selected, disabled }}
       disabled={disabled}
       onPress={onPress}

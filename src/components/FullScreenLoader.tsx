@@ -6,6 +6,8 @@ export function FullScreenLoader() {
   const theme = useTheme();
   return (
     <View
+      accessibilityRole="progressbar"
+      accessibilityLabel="Loading"
       style={{
         flex: 1,
         alignItems: 'center',
