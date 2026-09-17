@@ -148,6 +148,21 @@ export default function IntroductionScreen() {
           <Text variant="footnote" color="tertiary" align="center">
             Your choice is private. If it isn&apos;t mutual, they&apos;re never told.
           </Text>
+          <Button
+            label="Report or block"
+            variant="ghost"
+            onPress={() =>
+              router.push({
+                pathname: '/report',
+                params: {
+                  userId: intro.other.userId,
+                  name: intro.other.firstName,
+                  contextType: 'introduction',
+                  contextId: intro.id,
+                },
+              })
+            }
+          />
         </VStack>
       ) : null}
 

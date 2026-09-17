@@ -44,6 +44,10 @@ export default function RootLayout() {
                 name="reflection/[introductionId]"
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
               />
+              <Stack.Screen
+                name="report"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
             </Stack>
           </ThemeProvider>
         </QueryClientProvider>

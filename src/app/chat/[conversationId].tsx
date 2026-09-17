@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { useUserId } from '@/hooks/app';
 
 export default function ConversationScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const userId = useUserId();
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const listRef = useRef<FlatList>(null);
@@ -35,7 +36,32 @@ export default function ConversationScreen() {
       edges={['top', 'bottom']}
     >
       <View style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
-        <ScreenHeader title={other?.firstName ?? 'Chat'} showBack />
+        <ScreenHeader
+          title={other?.firstName ?? 'Chat'}
+          showBack
+          right={
+            other ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Report or block"
+                hitSlop={12}
+                onPress={() =>
+                  router.push({
+                    pathname: '/report',
+                    params: {
+                      userId: other.userId,
+                      name: other.firstName,
+                      contextType: 'message',
+                      contextId: conversationId,
+                    },
+                  })
+                }
+              >
+                <Icon name="flag" size={20} color={theme.colors.textTertiary} />
+              </Pressable>
+            ) : undefined
+          }
+        />
       </View>
 
       <KeyboardAvoidingView

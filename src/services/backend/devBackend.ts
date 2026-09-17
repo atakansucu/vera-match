@@ -639,6 +639,10 @@ export class DevBackend implements Backend {
 
   async sendMessage(userId: string, conversationId: string, body: string): Promise<Message> {
     this.requireConversationParticipant(userId, conversationId);
+    const otherId = this.conversationOther(userId, conversationId);
+    if (otherId && this.isBlockedPair(userId, otherId)) {
+      throw new Error('You can no longer message this person.');
+    }
     const message: Message = {
       id: uid('msg'),
       conversationId,
@@ -782,6 +786,21 @@ export class DevBackend implements Backend {
     if (!match || (match.userA !== userId && match.userB !== userId)) {
       throw new Error('You are not a participant in this conversation.');
     }
+  }
+
+  private conversationOther(userId: string, conversationId: string): string | null {
+    const conversation = this.state.conversations.find((c) => c.id === conversationId);
+    const match = conversation && this.state.matches.find((m) => m.id === conversation.matchId);
+    if (!match) return null;
+    return match.userA === userId ? match.userB : match.userA;
+  }
+
+  private isBlockedPair(a: string, b: string): boolean {
+    return this.state.blocks.some(
+      (block) =>
+        (block.blockerId === a && block.blockedId === b) ||
+        (block.blockerId === b && block.blockedId === a),
+    );
   }
 
   private upsertDecision(
