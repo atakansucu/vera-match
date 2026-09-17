@@ -18,6 +18,7 @@ import {
 import { useAuthActions } from '@/features/auth/useAuth';
 import { ageFromDob } from '@/lib/date';
 import { logDev } from '@/lib/log';
+import { registerForPushNotifications } from '@/lib/notifications';
 import { useBackend, useUserId } from '@/hooks/app';
 import type { IconName } from '@/design';
 
@@ -48,6 +49,16 @@ export default function MeScreen() {
   const onVerify = async () => {
     await backend.submitSelfie(userId, 'dev://selfie');
     void verification.refetch();
+  };
+
+  const onNotifications = async () => {
+    const token = await registerForPushNotifications();
+    Alert.alert(
+      token ? 'Notifications on' : 'Notifications unavailable',
+      token
+        ? 'You will get a quiet ping for a new introduction, a mutual match, or a new message. Lock-screen text stays generic.'
+        : 'Push notifications need a physical device. Nothing sensitive is ever shown on the lock screen.',
+    );
   };
 
   const onExport = async () => {
@@ -136,6 +147,8 @@ export default function MeScreen() {
           PRIVACY & DATA
         </Text>
         <Card padding="none">
+          <RowLink icon="bell" label="Notifications" onPress={onNotifications} />
+          <Divider spacingToken="none" />
           <RowLink icon="download" label="Export my data" onPress={onExport} />
           <Divider spacingToken="none" />
           <RowLink icon="trash-2" label="Delete my account" destructive onPress={onDelete} />

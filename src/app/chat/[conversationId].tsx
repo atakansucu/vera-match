@@ -20,7 +20,8 @@ export default function ConversationScreen() {
   const messagesQuery = useMessages(conversationId);
   const sendMessage = useSendMessage(conversationId);
 
-  const other = conversations.data?.find((c) => c.id === conversationId)?.other;
+  const conversation = conversations.data?.find((c) => c.id === conversationId);
+  const other = conversation?.other;
   const messages = messagesQuery.data ?? [];
 
   const onSend = () => {
@@ -63,6 +64,31 @@ export default function ConversationScreen() {
           }
         />
       </View>
+
+      {conversation ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Share how a date with ${other?.firstName ?? 'them'} felt`}
+          onPress={() =>
+            router.push({
+              pathname: '/reflection/[introductionId]',
+              params: { introductionId: conversation.introductionId },
+            })
+          }
+          style={{
+            marginHorizontal: theme.spacing.xl,
+            marginBottom: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+            paddingVertical: theme.spacing.md,
+            borderRadius: theme.radii.md,
+            backgroundColor: theme.colors.accentSoft,
+          }}
+        >
+          <Text variant="caption" color="accent">
+            Been on a date with {other?.firstName ?? 'them'}? Share how it felt {'\u2192'}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}

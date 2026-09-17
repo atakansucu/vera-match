@@ -56,13 +56,23 @@ npm start          # Expo dev server + QR code for Expo Go
 
 ### Try the full loop in the preview
 
-On the sign-in screen, tap **"Continue as demo (Ava)"**. Ava is a seeded, onboarded user with:
+On the sign-in screen, tap **"Continue as demo (Ava)"**. Ava is a seeded, onboarded user in Munich
+with 11 other fictional community members (Liam, David, Noah, Mateo, Jonas, Emil, Ben, Sophia,
+Elif, Maya, …). Nobody is a real person.
 
-- a pending introduction (open it → read the explanation → see photos → choose Interested),
-- an existing mutual match and chat (David),
-- a past date to reflect on (from the introduction, submit a reflection and confirm the insight).
+Walk the core loop:
 
-New email sign-ups use the code `000000` in dev mode and go through onboarding.
+1. **Home** — a pending introduction to Liam. Open it. Read *Why this person?* first
+   (alignment / friction / unknown). Then continue to photos. Choose **I'd like to meet them**.
+   Liam independently says yes → **It's mutual.** → chat opens.
+2. **Chats** — an existing conversation with David. Send a message. Tap the flag to report/block.
+   Tap *Been on a date?* to open the reflection flow.
+3. **Matchmaker** — share a thought like *"the whole date was about work and planning felt off"*.
+   An unconfirmed hypothesis appears. Confirm it, then open **What my matchmaker knows**.
+4. **Me** — profile, verification stub (labelled non-production), notifications, export, delete.
+
+New email sign-ups use the code `000000` in dev mode and go through the ~5-minute onboarding.
+Jonas smokes — Ava's smoking dealbreaker excludes him. Introductions are never invented.
 
 ## Environment variables
 
@@ -117,7 +127,8 @@ src/
   state/          # zustand stores
   types/          # domain + view types
 supabase/         # migrations, edge functions, seed
-docs/             # implementation-plan, architecture, ai-architecture, privacy-architecture
+docs/             # implementation-plan, architecture, ai-architecture, privacy-architecture,
+                  # operations-concierge-matching, rls-inventory
 ```
 
 ## License
