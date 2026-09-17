@@ -52,6 +52,10 @@ export default function RootLayout() {
                 name="report"
                 options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
               />
+              <Stack.Screen
+                name="voice"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
             </Stack>
           </ThemeProvider>
         </QueryClientProvider>

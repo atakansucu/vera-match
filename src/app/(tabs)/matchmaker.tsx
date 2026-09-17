@@ -65,6 +65,36 @@ export default function MatchmakerScreen() {
       />
 
       <VStack gap="xl">
+        {/* Talk to your matchmaker */}
+        <Card elevated>
+          <HStack gap="md" style={{ alignItems: 'center' }}>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: theme.colors.accentSoft,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon name="mic" size={24} color={theme.colors.accent} />
+            </View>
+            <VStack gap="xxs" style={{ flex: 1 }}>
+              <Text variant="subheading">Talk to your matchmaker</Text>
+              <Text variant="caption" color="secondary">
+                Have a conversation about what you&apos;re looking for.
+              </Text>
+            </VStack>
+            <Button
+              label="Talk"
+              size="sm"
+              fullWidth={false}
+              onPress={() => router.push('/voice?context=matchmaker')}
+            />
+          </HStack>
+        </Card>
+
         {/* "I changed my mind" revision card */}
         {revisionCard ? (
           <Card elevated>

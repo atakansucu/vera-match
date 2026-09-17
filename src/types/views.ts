@@ -185,3 +185,21 @@ export interface HomeStateView {
   weeklyRecap: WeeklyRecapView | null;
   hasPredictionGame: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Voice matchmaker
+// ---------------------------------------------------------------------------
+
+/**
+ * Response from creating a voice session. In production mode `ephemeralToken`
+ * is set and the client connects directly to OpenAI Realtime API. In dev mode
+ * the token is null and the client falls back to the text-based chat.
+ */
+export interface VoiceSessionView {
+  /** Ephemeral token for the OpenAI Realtime API. Null in dev mode. */
+  ephemeralToken: string | null;
+  /** Whether the session supports real audio or text-only. */
+  mode: 'voice' | 'text';
+  /** System prompt context for the conversation. */
+  context: 'onboarding' | 'matchmaker';
+}

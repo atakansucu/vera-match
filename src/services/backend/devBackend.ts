@@ -52,6 +52,7 @@ import type {
   Session,
   UserDataExport,
   VerificationView,
+  VoiceSessionView,
   WeeklyRecapView,
 } from '@/types/views';
 
@@ -756,6 +757,24 @@ export class DevBackend implements Backend {
 
   async getFeatureFlags(): Promise<FeatureFlags> {
     return DEFAULT_FEATURE_FLAGS;
+  }
+
+  // -------------------------------------------------------------------------
+  // Voice matchmaker
+  // -------------------------------------------------------------------------
+
+  async createVoiceSession(
+    _userId: string,
+    context: 'onboarding' | 'matchmaker',
+  ): Promise<VoiceSessionView> {
+    return { ephemeralToken: null, mode: 'text', context };
+  }
+
+  async processVoiceTranscript(
+    userId: string,
+    transcript: string,
+  ): Promise<{ createdClaims: Claim[] }> {
+    return this.shareThought(userId, transcript);
   }
 
   // -------------------------------------------------------------------------

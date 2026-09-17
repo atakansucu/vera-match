@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Callout, Photo, ScreenHeader } from '@/components';
 import { ChipGroup, LabeledBlock, MultiChipGroup, Stepper, ToggleRow } from '@/components/form';
 import { Button, Card, HStack, Screen, Text, useTheme, VStack } from '@/design';
+import { Icon } from '@/design/primitives/Icon';
 import { Field } from '@/design/primitives/Field';
 import {
   CHILDREN_OPTIONS,
@@ -12,8 +13,6 @@ import {
   GENDER_OPTIONS,
   MUNICH_AREAS,
   RELATIONSHIP_GOAL_OPTIONS,
-  STYLE_QUESTIONS,
-  styleOptions,
 } from '@/features/onboarding/options';
 import {
   ONBOARDING_DEFAULTS,
@@ -22,6 +21,7 @@ import {
   type OnboardingForm,
 } from '@/features/onboarding/schema';
 import { useSubmitOnboarding } from '@/features/onboarding/useSubmitOnboarding';
+import { VoiceChat } from '@/features/voice/VoiceChat';
 import { classifyError, messageFor } from '@/lib/errors';
 import { pickImage } from '@/lib/photos';
 import { getBackend } from '@/services/backend';
@@ -40,6 +40,13 @@ export default function OnboardingSteps() {
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [voiceActive, setVoiceActive] = useState(false);
+  const [voiceCompleted, setVoiceCompleted] = useState(false);
+
+  const handleVoiceComplete = useCallback(() => {
+    setVoiceActive(false);
+    setVoiceCompleted(true);
+  }, []);
 
   useEffect(() => {
     if (session) void backend.track(session.userId, 'onboarding_started');
@@ -256,23 +263,45 @@ export default function OnboardingSteps() {
         </VStack>
       ) : null}
 
-      {step === 'style' ? (
-        <VStack gap="xl">
-          <Text variant="callout" color="secondary">
-            A few quick, optional questions. Skip any that don&apos;t feel clear yet.
-          </Text>
-          {STYLE_QUESTIONS.map((q) => (
-            <LabeledBlock key={q.dimension} label={q.prompt}>
-              <ChipGroup
-                options={styleOptions(q.dimension)}
-                value={form.styleAnswers[q.dimension] ?? null}
-                onChange={(value) =>
-                  update({ styleAnswers: { ...form.styleAnswers, [q.dimension]: value } })
-                }
-              />
-            </LabeledBlock>
-          ))}
-        </VStack>
+      {step === 'voice' ? (
+        voiceActive ? (
+          <View style={{ flex: 1, minHeight: 400 }}>
+            <VoiceChat context="onboarding" onComplete={handleVoiceComplete} />
+          </View>
+        ) : voiceCompleted ? (
+          <VStack gap="lg" style={{ alignItems: 'center', paddingVertical: theme.spacing.xxl }}>
+            <Icon name="check-circle" size={48} color={theme.colors.positive} />
+            <Text variant="heading" align="center">
+              Great conversation
+            </Text>
+            <Text variant="body" color="secondary" align="center">
+              I noted a few things to check with you later. Let&apos;s finish setting up.
+            </Text>
+          </VStack>
+        ) : (
+          <VStack gap="xl">
+            <Text variant="heading">Let&apos;s talk</Text>
+            <Text variant="body" color="secondary">
+              Instead of more forms, I&apos;d like to have a short conversation. I&apos;ll ask about
+              what matters to you in a relationship — goals, lifestyle, communication. It only
+              takes a few minutes.
+            </Text>
+            <Callout>
+              Everything you share stays private. I&apos;ll note things to check with you, but
+              nothing changes your model until you confirm.
+            </Callout>
+            <Button
+              label="Start conversation"
+              leftIcon={<Icon name="mic" size={20} color={theme.colors.onAccent} />}
+              onPress={() => setVoiceActive(true)}
+            />
+            <Button
+              label="Skip for now"
+              variant="ghost"
+              onPress={() => setStepIndex((i) => i + 1)}
+            />
+          </VStack>
+        )
       ) : null}
 
       {step === 'photos' ? (

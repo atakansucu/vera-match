@@ -34,6 +34,7 @@ import type {
   Session,
   UserDataExport,
   VerificationView,
+  VoiceSessionView,
   WeeklyRecapView,
 } from '@/types/views';
 
@@ -179,6 +180,25 @@ export interface Backend {
     userId: string,
     conversationId: string,
   ): Promise<ConversationStarterView | null>;
+
+  // --- Voice matchmaker ---
+  /**
+   * Creates a voice session. In production, this calls the server to obtain an
+   * ephemeral token for the OpenAI Realtime API. In dev mode, it returns a
+   * text-only session for simulated conversation.
+   */
+  createVoiceSession(
+    userId: string,
+    context: 'onboarding' | 'matchmaker',
+  ): Promise<VoiceSessionView>;
+  /**
+   * Processes a completed voice conversation transcript. Extracts claims and
+   * returns them as unconfirmed.
+   */
+  processVoiceTranscript(
+    userId: string,
+    transcript: string,
+  ): Promise<{ createdClaims: Claim[] }>;
 
   // --- Account (GDPR) ---
   exportData(userId: string): Promise<UserDataExport>;

@@ -87,7 +87,7 @@ export function validateStep(step: OnboardingStep, form: OnboardingForm): StepVa
       return { ok: true };
     case 'dealbreakers':
       return { ok: true };
-    case 'style':
+    case 'voice':
       return { ok: true };
     case 'photos':
       return { ok: true };
@@ -101,7 +101,7 @@ export const ONBOARDING_STEPS = [
   'basics',
   'preferences',
   'dealbreakers',
-  'style',
+  'voice',
   'photos',
   'consent',
 ] as const;

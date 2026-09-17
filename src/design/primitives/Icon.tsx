@@ -26,7 +26,11 @@ export type IconName =
   | 'bell'
   | 'send'
   | 'flag'
-  | 'slash';
+  | 'slash'
+  | 'mic'
+  | 'mic-off'
+  | 'phone'
+  | 'phone-off';
 
 export interface IconProps {
   name: IconName;

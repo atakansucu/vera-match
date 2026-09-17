@@ -68,7 +68,7 @@ describe('validateStep', () => {
 
   it('treats optional steps as always valid', () => {
     expect(validateStep('dealbreakers', form()).ok).toBe(true);
-    expect(validateStep('style', form()).ok).toBe(true);
+    expect(validateStep('voice', form()).ok).toBe(true);
     expect(validateStep('photos', form()).ok).toBe(true);
     expect(validateStep('consent', form()).ok).toBe(true);
   });
