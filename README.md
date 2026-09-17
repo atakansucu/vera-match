@@ -31,7 +31,7 @@ backend and a strictly server-side AI boundary.
 
 - Node.js 20+ (this repo is developed on Node 22)
 - npm 10+
-- For device testing: the **Expo Go** app, or an iOS Simulator (macOS) / Android emulator
+- For device testing: **SDK 57 Expo Go** ([sign.expo.dev](https://sign.expo.dev) on iPhone, [expo.dev/go](https://expo.dev/go) on Android — App Store Expo Go is SDK 54 and will not open this project), or an iOS Simulator (macOS) / Android emulator
 - Optional (for the real backend): Docker + the Supabase CLI
 
 ## Setup
@@ -48,11 +48,34 @@ external services or API keys.
 ## Running the app
 
 ```bash
-npm run web        # open in a browser (fastest for a quick look)
-npm run ios        # iOS simulator (macOS)
-npm run android    # Android emulator / device
-npm start          # Expo dev server + QR code for Expo Go
+npm run web           # open in a browser (fastest for a quick look)
+npm run ios           # iOS simulator (macOS)
+npm run android       # Android emulator / device
+npm start             # Expo dev server + QR code for Expo Go (LAN)
+npm run start:tunnel  # same, via an ngrok tunnel (phone not on the same Wi‑Fi)
 ```
+
+### Expo Go timeout (“Opening project…” then fails)
+
+Kindred targets **Expo SDK 57**. Store Expo Go on iPhone is still built for **SDK 54**, so scanning a QR from this project will hang on “Opening project…” and time out. That is not a Kindred bug.
+
+Do this on **your machine**, not a Cloud Agent QR (`127.0.0.1` / a remote agent host is unreachable from your phone):
+
+1. **Install an SDK 57 Expo Go**, not the App Store copy:
+   - iPhone: [https://sign.expo.dev](https://sign.expo.dev)
+   - Android: [https://expo.dev/go](https://expo.dev/go)
+2. **Log in to the same Expo account on both sides.** SDK 57 Expo Go requires it ([changelog](https://expo.dev/changelog/expo-go-57-login)):
+   ```bash
+   npx expo login
+   ```
+   Then open Expo Go → Profile and sign in with the same account.
+3. **Network:**
+   - Same Wi‑Fi as the laptop: `npm start`, scan the QR.
+   - Different network / guest Wi‑Fi / cellular: `npm run start:tunnel`, wait until the tunnel URL is ready, then scan that QR. Tunnel is required whenever the phone cannot reach the laptop’s LAN IP.
+4. **Do not scan a Cloud Agent QR.** Those advertise `localhost` or an internal host. Clone the repo locally (or use EAS / a simulator) instead.
+5. **If it still fails after a matching Expo Go + login:** this app uses `expo-glass-effect` and `@expo/ui`, which can be unreliable in Expo Go. Use an iOS Simulator (`npm run ios` on macOS), Android emulator, or a development build.
+
+We are **not** downgrading the whole project to SDK 54 just to match App Store Expo Go.
 
 ### Try the full loop in the preview
 
@@ -105,10 +128,11 @@ See [docs/architecture.md](docs/architecture.md) and [docs/privacy-architecture.
 ## Scripts
 
 ```bash
-npm run typecheck   # tsc --noEmit (strict)
-npm run lint        # eslint
-npm test            # jest (business-logic + privacy + AI schema tests)
-npm run format      # prettier --write
+npm run typecheck     # tsc --noEmit (strict)
+npm run lint          # eslint
+npm test              # jest (business-logic + privacy + AI schema tests)
+npm run format        # prettier --write
+npm run start:tunnel  # Expo Go over ngrok when the phone is not on LAN
 ```
 
 ## Project structure
