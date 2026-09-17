@@ -94,6 +94,9 @@ describe('post-date reflection (Phase 7 outcome learning)', () => {
       summarizeRelationshipModel: async () => {
         throw new Error('timeout');
       },
+      analyzeConversation: async () => {
+        throw new Error('timeout');
+      },
     };
     const backend = new DevBackend(failing);
     const userId = await demo(backend);

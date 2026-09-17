@@ -254,10 +254,39 @@ export function useVoiceSession({
     const transcript = transcriptRef.current.join('\n');
     if (!transcript) return [];
 
+    // When connected to the live server, trigger deep analysis server-side
+    // before passing to the backend for claim creation.
+    if (isLive && serverUrl) {
+      try {
+        const analyzeRes = await fetch(`${serverUrl}/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript, modelSummary: [] }),
+        });
+        if (analyzeRes.ok) {
+          const analysis = (await analyzeRes.json()) as {
+            insights: { dimension: string; value: string; claimType: string }[];
+          };
+          if (analysis.insights?.length > 0) {
+            // Server-side analysis succeeded — pass full transcript so backend
+            // creates claims from the richer analysis.
+            const { createdClaims } = await backend.processVoiceTranscript(
+              session.userId,
+              transcript,
+            );
+            onComplete?.(createdClaims);
+            return createdClaims;
+          }
+        }
+      } catch {
+        // Fall through to basic processing
+      }
+    }
+
     const { createdClaims } = await backend.processVoiceTranscript(session.userId, transcript);
     onComplete?.(createdClaims);
     return createdClaims;
-  }, [onComplete]);
+  }, [onComplete, isLive, serverUrl]);
 
   return { status, messages, sendText, start, end, isLive };
 }

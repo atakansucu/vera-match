@@ -1,6 +1,7 @@
 import type { ConfidenceTier, Dimension, EvidenceType } from '@/types/domain';
 
 import type {
+  AnalyzeConversationOutput,
   ExplanationOutput,
   ExtractClaimsOutput,
   MicroQuestionOutput,
@@ -55,6 +56,13 @@ export interface SummarizeInput {
   items: ModelSummaryItem[];
 }
 
+export interface AnalyzeConversationInput {
+  /** Full conversation transcript (private, user's own conversation only). */
+  transcript: string;
+  /** Existing confirmed model so the analysis can flag changes/contradictions. */
+  modelSummary: ModelSummaryItem[];
+}
+
 /**
  * Provider abstraction so the app is not permanently coupled to one model. The
  * production implementation (OpenAI Responses API) runs only server-side; the
@@ -67,4 +75,9 @@ export interface AIProvider {
   generateIntroductionExplanation(input: ExplanationInput): Promise<ExplanationOutput>;
   proposeMicroQuestion(input: MicroQuestionInput): Promise<MicroQuestionOutput>;
   summarizeRelationshipModel(input: SummarizeInput): Promise<SummarizeOutput>;
+  /**
+   * Deep analysis of a full voice conversation transcript. Extracts richer
+   * claims across all 15 dimensions. All insights start as `unconfirmed`.
+   */
+  analyzeConversation(input: AnalyzeConversationInput): Promise<AnalyzeConversationOutput>;
 }

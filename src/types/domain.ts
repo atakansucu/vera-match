@@ -400,6 +400,7 @@ export const AI_TASK_TYPES = [
   'generate_explanation',
   'propose_micro_question',
   'summarize_model',
+  'analyze_conversation',
 ] as const;
 export type AiTaskType = (typeof AI_TASK_TYPES)[number];
 

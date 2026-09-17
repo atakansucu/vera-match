@@ -2,11 +2,14 @@ import { DIMENSION_SPECS } from '@/features/matching/dimensions';
 import type { Dimension } from '@/types/domain';
 
 import {
+  analyzeConversationOutputSchema,
   explanationOutputSchema,
   extractClaimsOutputSchema,
   microQuestionOutputSchema,
   reconcileReflectionOutputSchema,
   summarizeOutputSchema,
+  type AnalyzeConversationOutput,
+  type ConversationInsight,
   type ExplanationOutput,
   type ExtractClaimsOutput,
   type MicroQuestionOutput,
@@ -17,6 +20,7 @@ import {
 } from './schemas';
 import type {
   AIProvider,
+  AnalyzeConversationInput,
   ExplanationInput,
   ExtractClaimsInput,
   MicroQuestionInput,
@@ -160,6 +164,24 @@ export class MockAIProvider implements AIProvider {
     return summarizeOutputSchema.parse({
       summary: `So far I have a sense of your ${parts.join(', ')}. I'll keep refining this as we go.`,
     });
+  }
+
+  async analyzeConversation(input: AnalyzeConversationInput): Promise<AnalyzeConversationOutput> {
+    const insights: ConversationInsight[] = matchRules(input.transcript, 5).map((rule) => ({
+      dimension: rule.dimension,
+      value: rule.value,
+      claimType: 'hypothesis' as const,
+      rationale: rule.rationale,
+      signal: 'weak' as const,
+      evidence: `Keyword detected in conversation transcript.`,
+    }));
+
+    const summary =
+      insights.length > 0
+        ? `From our conversation, I picked up on ${insights.length} thing${insights.length > 1 ? 's' : ''} worth checking with you.`
+        : 'We had a nice chat, but I want to learn more before drawing conclusions.';
+
+    return analyzeConversationOutputSchema.parse({ insights, summary });
   }
 }
 

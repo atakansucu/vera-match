@@ -63,3 +63,27 @@ export const summarizeOutputSchema = z.strictObject({
   summary: z.string().min(1).max(600),
 });
 export type SummarizeOutput = z.infer<typeof summarizeOutputSchema>;
+
+/**
+ * Output from deep conversation analysis. Each insight maps to one of the 15
+ * dimensions and starts life as an `unconfirmed` claim — the user must confirm
+ * before it influences matching.
+ */
+export const conversationInsightSchema = z.strictObject({
+  dimension: dimensionEnum,
+  value: z.string().min(1).max(60),
+  claimType: claimTypeEnum,
+  rationale: z.string().min(1).max(300),
+  /** Confidence signal the AI observed — "strong" if user stated it directly, "weak" if inferred. */
+  signal: z.enum(['strong', 'weak']),
+  /** The exact quote or paraphrase from the transcript that supports this insight. */
+  evidence: z.string().min(1).max(200),
+});
+export type ConversationInsight = z.infer<typeof conversationInsightSchema>;
+
+export const analyzeConversationOutputSchema = z.strictObject({
+  insights: z.array(conversationInsightSchema).max(10),
+  /** Brief matchmaker-style summary of what was learned (1-2 sentences). */
+  summary: z.string().min(1).max(400),
+});
+export type AnalyzeConversationOutput = z.infer<typeof analyzeConversationOutputSchema>;

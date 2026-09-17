@@ -7,32 +7,33 @@ import { minTouchTarget, radii, spacing } from '@/design/tokens';
 import type { Claim } from '@/types/domain';
 
 import { TextChat } from './TextChat';
+import { useAudioPlayer, useAudioRecorder } from './useAudio';
 import { useVoiceSession } from './useVoiceSession';
 
 interface VoiceChatProps {
   context: 'onboarding' | 'matchmaker';
-  /** Called when the user ends the conversation and claims are extracted. */
   onComplete?: (claims: Claim[]) => void;
-  /** Called when the user wants to dismiss without completing. */
   onDismiss?: () => void;
 }
 
 /**
  * The voice matchmaker conversation component.
  *
- * In dev mode (no OpenAI key), renders a text chat with scripted responses.
- * In production, this would show audio controls and connect via WebSocket
- * to the OpenAI Realtime API using an ephemeral token.
+ * In dev mode with a live server, supports:
+ * - Text input (always available)
+ * - Microphone recording → Whisper transcription → AI response
+ * - TTS playback of AI responses
  *
- * Claims are extracted from the conversation transcript when the user ends
- * the session, following the learning loop: all claims start as `unconfirmed`.
+ * Without a live server, falls back to scripted text simulation.
  */
-export function VoiceChat({ context, onComplete, onDismiss }: VoiceChatProps) {
+export function VoiceChat({ context, onComplete }: VoiceChatProps) {
   const theme = useTheme();
   const { status, messages, sendText, start, end, isLive } = useVoiceSession({
     context,
     onComplete,
   });
+  const { recordingStatus, startRecording, stopAndTranscribe } = useAudioRecorder();
+  const { playbackStatus, speak, stop: stopPlayback } = useAudioPlayer();
 
   useEffect(() => {
     if (status === 'idle') {
@@ -40,9 +41,33 @@ export function VoiceChat({ context, onComplete, onDismiss }: VoiceChatProps) {
     }
   }, [status, start]);
 
+  // Auto-play TTS for new assistant messages when live
+  useEffect(() => {
+    if (!isLive || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.role === 'assistant' && !last.streaming && last.text && playbackStatus === 'idle') {
+      void speak(last.text);
+    }
+    // Only trigger when message list changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
+
+  const handleMicPress = useCallback(async () => {
+    if (recordingStatus === 'idle') {
+      await stopPlayback();
+      await startRecording();
+    } else if (recordingStatus === 'recording') {
+      const transcript = await stopAndTranscribe();
+      if (transcript) {
+        sendText(transcript);
+      }
+    }
+  }, [recordingStatus, startRecording, stopAndTranscribe, stopPlayback, sendText]);
+
   const handleEnd = useCallback(async () => {
+    await stopPlayback();
     await end();
-  }, [end]);
+  }, [end, stopPlayback]);
 
   if (status === 'ended') {
     return (
@@ -83,6 +108,27 @@ export function VoiceChat({ context, onComplete, onDismiss }: VoiceChatProps) {
     backgroundColor: theme.colors.surface,
   };
 
+  const micColor =
+    recordingStatus === 'recording'
+      ? theme.colors.destructive
+      : recordingStatus === 'processing'
+        ? theme.colors.caution
+        : theme.colors.accent;
+
+  const micBgColor =
+    recordingStatus === 'recording'
+      ? theme.colors.destructiveSoft
+      : recordingStatus === 'processing'
+        ? theme.colors.cautionSoft
+        : theme.colors.accentSoft;
+
+  const micLabel =
+    recordingStatus === 'recording'
+      ? 'Stop recording'
+      : recordingStatus === 'processing'
+        ? 'Transcribing…'
+        : 'Record voice';
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={headerStyle}>
@@ -90,7 +136,12 @@ export function VoiceChat({ context, onComplete, onDismiss }: VoiceChatProps) {
           <Text variant="subheading">
             {context === 'onboarding' ? 'Getting to know you' : 'Your matchmaker'}
           </Text>
-          <Badge label={isLive ? 'Live AI' : 'Text mode'} tone={isLive ? 'accent' : 'neutral'} />
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <Badge label={isLive ? 'Live AI' : 'Text mode'} tone={isLive ? 'accent' : 'neutral'} />
+            {playbackStatus === 'playing' ? (
+              <Badge label="Speaking…" tone="accent" />
+            ) : null}
+          </View>
         </VStack>
         <Pressable
           onPress={handleEnd}
@@ -111,11 +162,51 @@ export function VoiceChat({ context, onComplete, onDismiss }: VoiceChatProps) {
           </Text>
         </Pressable>
       </View>
+
       <TextChat
         messages={messages}
         onSend={sendText}
         disabled={status !== 'active'}
       />
+
+      {/* Mic button — only shown when live server is available */}
+      {isLive ? (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 80,
+            right: spacing.lg,
+          }}
+        >
+          <Pressable
+            onPress={handleMicPress}
+            disabled={recordingStatus === 'processing'}
+            accessibilityRole="button"
+            accessibilityLabel={micLabel}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: micBgColor,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: recordingStatus === 'processing' ? 0.6 : 1,
+              // Subtle shadow
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.15,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
+          >
+            <Icon
+              name={recordingStatus === 'recording' ? 'mic-off' : 'mic'}
+              size={24}
+              color={micColor}
+            />
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }

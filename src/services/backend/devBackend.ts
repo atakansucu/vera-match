@@ -777,7 +777,52 @@ export class DevBackend implements Backend {
     userId: string,
     transcript: string,
   ): Promise<{ createdClaims: Claim[] }> {
-    return this.shareThought(userId, transcript);
+    const modelSummary = this.modelSummary(userId);
+    const output = await this.runAi('analyze_conversation', () =>
+      this.ai.analyzeConversation({ transcript, modelSummary }),
+    );
+
+    if (!output || output.insights.length === 0) {
+      // Fallback to simple keyword extraction
+      return this.shareThought(userId, transcript);
+    }
+
+    const createdClaims: Claim[] = [];
+    for (const insight of output.insights) {
+      const spec = DIMENSION_SPECS[insight.dimension];
+      // Skip insights with invalid scale values
+      if (!spec.scale.includes(insight.value)) continue;
+
+      const existing = this.state.claims.find(
+        (c) =>
+          c.userId === userId &&
+          c.dimension === insight.dimension &&
+          c.status === 'unconfirmed',
+      );
+      if (existing) {
+        existing.value = insight.value;
+        existing.updatedAt = nowIso();
+        createdClaims.push(existing);
+        continue;
+      }
+      const claim: Claim = {
+        id: uid('claim'),
+        userId,
+        dimension: insight.dimension,
+        value: insight.value,
+        claimType: insight.claimType,
+        confidence: insight.signal === 'strong' ? 'weak_low' : 'unknown',
+        importance: spec.defaultImportance,
+        status: 'unconfirmed',
+        sourceType: 'reflection',
+        supersededBy: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      this.state.claims.push(claim);
+      createdClaims.push(claim);
+    }
+    return { createdClaims };
   }
 
   // -------------------------------------------------------------------------
