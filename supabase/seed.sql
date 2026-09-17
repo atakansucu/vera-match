@@ -1,0 +1,9 @@
+-- Kindred local seed data.
+--
+-- The full schema (tables + Row Level Security) is authored in supabase/migrations/.
+-- This seed mirrors the fictional community used by the in-app dev backend
+-- (src/services/backend/seed.ts) so `supabase db reset` gives a comparable local
+-- dataset for testing the real backend once the schema migration lands.
+--
+-- Intentionally empty until the schema migration is in place (Phase 1) to avoid
+-- referencing tables that do not yet exist.
