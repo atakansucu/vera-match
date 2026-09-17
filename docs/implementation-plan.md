@@ -81,29 +81,29 @@ AI proposes a model update → user confirms/edits → future matching reflects 
 Each phase ends with `npm run typecheck`, `npm run lint`, `npm test`, fixes, a change summary,
 remaining risks, then commit + push.
 
-- **Phase 0 — Foundation.** Expo scaffold, design system, domain types, matching engine + tests,
+- **Phase 0 — Foundation.** ✅ Done. Expo scaffold, design system, domain types, matching engine + tests,
   AI schemas + mock, `Backend` interface + `DevBackend` + seed, app shell (providers, navigation,
   auth, tabs, introduction/chat/reflection/matchmaker/me screens, onboarding wizard), docs,
   `AGENTS.md`, README, `.env.example`, supabase scaffold.
-- **Phase 1 — Auth + onboarding backing.** Supabase migrations + RLS for profiles/photos/
+- **Phase 1 — Auth + onboarding backing.** ✅ Done. Supabase migrations + RLS for profiles/photos/
   preferences/consents/verification; onboarding validation + age-gate + consent unit tests.
-- **Phase 2 — Relationship model.** Claims/evidence/confidence + "What my matchmaker knows" +
+- **Phase 2 — Relationship model.** ✅ Done. Claims/evidence/confidence + "What my matchmaker knows" +
   edit/correct/reject; tests that unconfirmed/rejected claims never affect matching + revisions
   preserve history.
-- **Phase 3 — AI matchmaker.** Edge Function OpenAI provider (Responses API + Structured Outputs),
+- **Phase 3 — AI matchmaker.** ✅ Done. Edge Function OpenAI provider (Responses API + Structured Outputs),
   reflection extraction, hypothesis→confirm flow, deterministic fallback; schema-validation and
   prompt-injection tests.
-- **Phase 4 — Matching.** Full pipeline migrations/functions, concierge introduction RPC +
+- **Phase 4 — Matching.** ✅ Done. Full pipeline migrations/functions, concierge introduction RPC +
   operator doc, expanded unit tests.
-- **Phase 5 — Introduction UX.** Explanation-first → photo reveal → Interested/Not-for-me →
+- **Phase 5 — Introduction UX.** ✅ Done. Explanation-first → photo reveal → Interested/Not-for-me →
   double-blind mutual.
-- **Phase 6 — Human chat.** Realtime messaging, participant-only RLS, block/report,
+- **Phase 6 — Human chat.** ✅ Done. Realtime messaging, participant-only RLS, block/report,
   empty/pagination/optimistic states.
-- **Phase 7 — Outcome learning.** Date-happened, post-date reflection, claim revision, second-date
+- **Phase 7 — Outcome learning.** ✅ Done. Date-happened, post-date reflection, claim revision, second-date
   intent.
-- **Phase 8 — Privacy / safety / reliability.** Data export + deletion/anonymization, RLS review,
+- **Phase 8 — Privacy / safety / reliability.** ✅ Done. Data export + deletion/anonymization, RLS review,
   abuse flows, error states, `ai_usage_log` cost instrumentation.
-- **Phase 9 — Polish.** Animation, accessibility, skeletons, Expo notifications (generic copy),
+- **Phase 9 — Polish.** ✅ Done. Animation, accessibility, skeletons, Expo notifications (generic copy),
   seeded demo flow, README completion.
 
 ## Phase acceptance criteria
