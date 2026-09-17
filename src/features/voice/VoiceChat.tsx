@@ -29,7 +29,7 @@ interface VoiceChatProps {
  */
 export function VoiceChat({ context, onComplete, onDismiss }: VoiceChatProps) {
   const theme = useTheme();
-  const { status, messages, sendText, start, end } = useVoiceSession({
+  const { status, messages, sendText, start, end, isLive } = useVoiceSession({
     context,
     onComplete,
   });
@@ -90,7 +90,7 @@ export function VoiceChat({ context, onComplete, onDismiss }: VoiceChatProps) {
           <Text variant="subheading">
             {context === 'onboarding' ? 'Getting to know you' : 'Your matchmaker'}
           </Text>
-          <Badge label="Text mode" tone="neutral" />
+          <Badge label={isLive ? 'Live AI' : 'Text mode'} tone={isLive ? 'accent' : 'neutral'} />
         </VStack>
         <Pressable
           onPress={handleEnd}

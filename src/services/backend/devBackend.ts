@@ -767,6 +767,9 @@ export class DevBackend implements Backend {
     _userId: string,
     context: 'onboarding' | 'matchmaker',
   ): Promise<VoiceSessionView> {
+    // Dev mode always returns text mode. The useVoiceSession hook checks
+    // EXPO_PUBLIC_DEV_REALTIME_URL directly and streams from the local dev
+    // AI server when available, bypassing the need for ephemeral tokens.
     return { ephemeralToken: null, mode: 'text', context };
   }
 

@@ -15,6 +15,8 @@ export const env = {
   supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
   supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
   betaAllowedEmailDomains: readList(process.env.EXPO_PUBLIC_BETA_ALLOWED_EMAIL_DOMAINS),
+  /** URL of the local dev realtime token server. No secrets — only public URL. */
+  devRealtimeUrl: process.env.EXPO_PUBLIC_DEV_REALTIME_URL ?? '',
 } as const;
 
 export function isSupabaseConfigured(): boolean {
