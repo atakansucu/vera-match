@@ -11,6 +11,7 @@ module.exports = [
       'coverage/*',
       'expo-env.d.ts',
       'babel.config.js',
+      'supabase/functions/**',
     ],
   },
   ...expoFlat,
