@@ -2,6 +2,7 @@ import { MockAIProvider } from '@/services/ai/mockProvider';
 import type { RevisionProposal } from '@/services/ai/schemas';
 import type { AIProvider, ExplanationFact, ModelSummaryItem } from '@/services/ai/types';
 import { claimsToInsights } from '@/features/claims/insights';
+import { confirmedDimensions } from '@/features/claims/matching';
 import { deriveConfidence } from '@/features/claims/confidence';
 import { DIMENSION_SPECS } from '@/features/matching/dimensions';
 import {
@@ -865,11 +866,7 @@ export class DevBackend implements Backend {
     const prefs = this.state.preferences.get(userId);
     if (!profile || !prefs || !profile.onboardingCompletedAt) return null;
 
-    const dimensions: MatchingProfile['dimensions'] = {};
-    for (const claim of this.state.claims) {
-      if (claim.userId !== userId || claim.status !== 'confirmed') continue;
-      dimensions[claim.dimension] = { value: claim.value, importance: claim.importance };
-    }
+    const dimensions = confirmedDimensions(this.state.claims.filter((c) => c.userId === userId));
 
     return {
       userId,
