@@ -15,8 +15,8 @@ interface TextChatProps {
 }
 
 /**
- * Text-based fallback chat used in dev mode when no OpenAI key is available.
- * Provides the same conversational UX as the voice mode but with typed input.
+ * Chat UI with streaming text support. Messages update character by character
+ * during streaming, producing a ChatGPT-like typing effect.
  */
 export function TextChat({ messages, onSend, disabled = false }: TextChatProps) {
   const theme = useTheme();
@@ -43,11 +43,9 @@ export function TextChat({ messages, onSend, disabled = false }: TextChatProps) 
       };
       return (
         <View style={bubbleStyle}>
-          <Text
-            variant="body"
-            color={isUser ? 'onAccent' : 'primary'}
-          >
+          <Text variant="body" color={isUser ? 'onAccent' : 'primary'}>
             {item.text}
+            {item.streaming ? '▍' : ''}
           </Text>
         </View>
       );
@@ -55,11 +53,16 @@ export function TextChat({ messages, onSend, disabled = false }: TextChatProps) 
     [theme],
   );
 
+  // extraData ensures FlatList re-renders when streaming text changes
+  const lastMsg = messages[messages.length - 1];
+  const extraData = lastMsg ? `${lastMsg.id}-${lastMsg.text.length}-${lastMsg.streaming}` : '';
+
   return (
     <View style={{ flex: 1 }}>
       <FlatList
         ref={listRef}
         data={messages}
+        extraData={extraData}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={{

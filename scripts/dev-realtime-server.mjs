@@ -266,6 +266,7 @@ async function handleTTS(req, res) {
       input: text,
       voice: TTS_VOICE,
       response_format: 'mp3',
+      speed: 1.15,
     }),
   });
 

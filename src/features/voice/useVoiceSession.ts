@@ -32,6 +32,8 @@ interface UseVoiceSessionOptions {
   onComplete?: (claims: Claim[]) => void;
   /** Called when a complete sentence is available during streaming, for early TTS. */
   onSentence?: (sentence: string) => void;
+  /** Called when the server-side stream finishes (all sentences emitted via onSentence). */
+  onStreamingDone?: () => void;
 }
 
 interface ChatMessage {
@@ -47,6 +49,10 @@ interface UseVoiceSessionReturn {
   end: () => Promise<Claim[]>;
   /** Whether connected to real LLM or using text simulation. */
   isLive: boolean;
+  /** Update displayed text of the current streaming message (for TTS-synced reveal). */
+  updateStreamingText: (text: string) => void;
+  /** Mark the current streaming message as complete (for TTS-synced reveal). */
+  finalizeStreaming: () => void;
 }
 
 let msgCounter = 0;
@@ -66,6 +72,7 @@ export function useVoiceSession({
   context,
   onComplete,
   onSentence,
+  onStreamingDone,
 }: UseVoiceSessionOptions): UseVoiceSessionReturn {
   const [status, setStatus] = useState<VoiceSessionStatus>('idle');
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
@@ -74,6 +81,7 @@ export function useVoiceSession({
   const transcriptRef = useRef<string[]>([]);
   const chatHistoryRef = useRef<ChatMessage[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const streamingMsgIdRef = useRef<string | null>(null);
 
   const prompts = context === 'onboarding' ? ONBOARDING_PROMPTS : MATCHMAKER_PROMPTS;
   const serverUrl = env.devRealtimeUrl;
@@ -98,6 +106,12 @@ export function useVoiceSession({
       if (!serverUrl) return;
 
       const id = msgId();
+      streamingMsgIdRef.current = id;
+
+      // When onSentence is provided (live TTS sync mode), text is revealed
+      // externally via updateStreamingText — we buffer silently here.
+      const syncMode = !!onSentence;
+
       // Add empty streaming message
       setMessages((prev) => [
         ...prev,
@@ -123,6 +137,7 @@ export function useVoiceSession({
                 : m,
             ),
           );
+          streamingMsgIdRef.current = null;
           return;
         }
 
@@ -149,12 +164,15 @@ export function useVoiceSession({
               if (parsed.delta) {
                 fullText += parsed.delta;
                 sentenceBuf += parsed.delta;
-                const captured = fullText;
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === id ? { ...m, text: captured } : m,
-                  ),
-                );
+
+                if (!syncMode) {
+                  const captured = fullText;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === id ? { ...m, text: captured } : m,
+                    ),
+                  );
+                }
 
                 // Detect sentence boundary and fire early TTS
                 const sentenceEnd = sentenceBuf.match(/[.!?]\s/);
@@ -176,10 +194,14 @@ export function useVoiceSession({
           onSentence(sentenceBuf.trim());
         }
 
-        // Finalize
-        setMessages((prev) =>
-          prev.map((m) => (m.id === id ? { ...m, streaming: false } : m)),
-        );
+        if (syncMode) {
+          onStreamingDone?.();
+        } else {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === id ? { ...m, streaming: false } : m)),
+          );
+          streamingMsgIdRef.current = null;
+        }
 
         if (fullText) {
           transcriptRef.current.push(`Matchmaker: ${fullText}`);
@@ -195,12 +217,30 @@ export function useVoiceSession({
             ),
           );
         }
+        streamingMsgIdRef.current = null;
       } finally {
         abortRef.current = null;
       }
     },
-    [serverUrl, context, onSentence],
+    [serverUrl, context, onSentence, onStreamingDone],
   );
+
+  const updateStreamingText = useCallback((text: string) => {
+    const id = streamingMsgIdRef.current;
+    if (!id) return;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, text } : m)),
+    );
+  }, []);
+
+  const finalizeStreaming = useCallback(() => {
+    const id = streamingMsgIdRef.current;
+    if (!id) return;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, streaming: false } : m)),
+    );
+    streamingMsgIdRef.current = null;
+  }, []);
 
   // -----------------------------------------------------------------------
   // Public API
@@ -307,5 +347,5 @@ export function useVoiceSession({
     return createdClaims;
   }, [onComplete, isLive, serverUrl]);
 
-  return { status, messages, sendText, start, end, isLive };
+  return { status, messages, sendText, start, end, isLive, updateStreamingText, finalizeStreaming };
 }
