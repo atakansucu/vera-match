@@ -313,8 +313,9 @@ export function useVoiceSession({
     const transcript = transcriptRef.current.join('\n');
     if (!transcript) return [];
 
-    // When connected to the live server, trigger deep analysis server-side
-    // before passing to the backend for claim creation.
+    // When connected to the live server, use GPT-powered deep analysis.
+    // The server returns structured insights that we pass to the backend
+    // as a "thought" containing all extracted info, so claims are created.
     if (isLive && serverUrl) {
       try {
         const analyzeRes = await fetch(`${serverUrl}/analyze`, {
@@ -324,17 +325,25 @@ export function useVoiceSession({
         });
         if (analyzeRes.ok) {
           const analysis = (await analyzeRes.json()) as {
-            insights: { dimension: string; value: string; claimType: string }[];
+            insights: { dimension: string; value: string; evidence: string }[];
+            summary: string;
           };
           if (analysis.insights?.length > 0) {
-            // Server-side analysis succeeded — pass full transcript so backend
-            // creates claims from the richer analysis.
-            const { createdClaims } = await backend.processVoiceTranscript(
-              session.userId,
-              transcript,
-            );
-            onComplete?.(createdClaims);
-            return createdClaims;
+            // Feed each insight as a separate thought to create unconfirmed claims.
+            // This uses the existing shareThought→extractClaims pipeline.
+            const allClaims: Claim[] = [];
+            for (const insight of analysis.insights) {
+              const text = `${insight.evidence} (${insight.dimension}: ${insight.value})`;
+              const { createdClaims } = await backend.shareThought(session.userId, text);
+              allClaims.push(...createdClaims);
+            }
+            // If keyword extraction missed some, also try the full transcript
+            if (allClaims.length === 0) {
+              const { createdClaims } = await backend.shareThought(session.userId, transcript);
+              allClaims.push(...createdClaims);
+            }
+            onComplete?.(allClaims);
+            return allClaims;
           }
         }
       } catch {
@@ -342,7 +351,7 @@ export function useVoiceSession({
       }
     }
 
-    const { createdClaims } = await backend.processVoiceTranscript(session.userId, transcript);
+    const { createdClaims } = await backend.shareThought(session.userId, transcript);
     onComplete?.(createdClaims);
     return createdClaims;
   }, [onComplete, isLive, serverUrl]);
